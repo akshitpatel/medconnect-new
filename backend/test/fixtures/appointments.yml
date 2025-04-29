@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  patient: one
+  provider: one
+  appointment_datetime: 2025-04-28 17:16:05
+  duration_minutes: 1
+  status: 1
+  appointment_type: MyString
+  reason: MyString
+  notes: MyText
+
+two:
+  patient: two
+  provider: two
+  appointment_datetime: 2025-04-28 17:16:05
+  duration_minutes: 1
+  status: 1
+  appointment_type: MyString
+  reason: MyString
+  notes: MyText

@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  patient: one
+  provider: one
+  medication_name: MyString
+  dosage: MyString
+  frequency: MyString
+  start_date: 2025-04-28
+  end_date: 2025-04-28
+  refills_allowed: 1
+  refills_remaining: 1
+  instructions: MyText
+  status: 1
+
+two:
+  patient: two
+  provider: two
+  medication_name: MyString
+  dosage: MyString
+  frequency: MyString
+  start_date: 2025-04-28
+  end_date: 2025-04-28
+  refills_allowed: 1
+  refills_remaining: 1
+  instructions: MyText
+  status: 1

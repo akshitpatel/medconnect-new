@@ -1,0 +1,199 @@
+/* MedConnect Theme - Teal Color Scheme */
+
+:root {
+  /* Primary Colors - Teal */
+  --primary-50: #E0F2F1;
+  --primary-100: #E0F2F1;
+  --primary-200: #B2DFDB;
+  --primary-300: #80CBC4;
+  --primary-400: #4DB6AC;
+  --primary-500: #26A69A;
+  --primary-600: #00897B; /* Primary teal color */
+  --primary-700: #00796B;
+  --primary-800: #00695C;
+  --primary-900: #004D40;
+  
+  /* Secondary Accent Colors */
+  --accent-500: #1E88E5; /* Blue accent for links and secondary actions */
+  --accent-600: #1976D2;
+  
+  /* Call-to-Action */
+  --cta-500: #00BCD4; /* Bright teal for primary buttons */
+  --cta-600: #00ACC1; /* Slightly darker for hover states */
+  
+  /* Alert Colors */
+  --alert-red: #F44336; /* For notifications and emergencies */
+  --success-green: #4CAF50; /* For success messages and statuses */
+  --warning-amber: #FFC107; /* For warning states */
+  
+  /* Neutral Colors */
+  --neutral-50: #FAFAFA;
+  --neutral-100: #F5F5F5;
+  --neutral-200: #EEEEEE;
+  --neutral-300: #E0E0E0;
+  --neutral-400: #BDBDBD;
+  --neutral-500: #9E9E9E;
+  --neutral-600: #757575;
+  --neutral-700: #616161;
+  --neutral-800: #424242;
+  --neutral-900: #212121;
+}
+
+/* Utility Classes */
+.bg-primary {
+  background-color: var(--primary-600);
+}
+.bg-primary-light {
+  background-color: var(--primary-100);
+}
+.bg-primary-dark {
+  background-color: var(--primary-800);
+}
+.text-primary {
+  color: var(--primary-600);
+}
+.text-primary-dark {
+  color: var(--primary-800);
+}
+.border-primary {
+  border-color: var(--primary-600);
+}
+
+/* Update existing color classes */
+.bg-teal-50 {
+  background-color: var(--primary-50);
+}
+.bg-teal-100 {
+  background-color: var(--primary-100);
+}
+.bg-teal-500 {
+  background-color: var(--primary-500);
+}
+.bg-teal-600 {
+  background-color: var(--primary-600);
+}
+.bg-teal-700 {
+  background-color: var(--primary-700);
+}
+.text-teal-600 {
+  color: var(--primary-600);
+}
+.text-teal-700 {
+  color: var(--primary-700);
+}
+
+/* Emergency color overrides */
+.bg-emergency-500 {
+  background-color: var(--alert-red);
+}
+.text-emergency-500 {
+  color: var(--alert-red);
+}
+
+/* Component Styling */
+/* Health Passport Card */
+.health-passport-card {
+  background-color: var(--neutral-50);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-600);
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+}
+
+.health-passport-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.health-passport-card .card-header h3 {
+  color: var(--neutral-900);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  margin: 0;
+}
+
+.health-passport-card .status-badge {
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.health-passport-card .status-badge.active {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-green);
+}
+
+.action-button {
+  background-color: var(--primary-600);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: var(--primary-700);
+}
+
+/* Cards and Containers */
+.med-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.med-card-title {
+  font-weight: 600;
+  color: var(--neutral-800);
+  margin-bottom: 12px;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary-600);
+  color: white;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-700);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--primary-600);
+  border: 1px solid var(--primary-600);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary-50);
+}
+
+.btn-emergency {
+  background-color: var(--alert-red);
+  color: white;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn-emergency:hover {
+  background-color: #d32f2f;
+} 

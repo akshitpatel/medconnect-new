@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  patient: one
+  provider: one
+  record_type: 1
+  record_date: 2025-04-28
+  title: MyString
+  description: MyText
+  file_url: MyString
+  status: 1
+
+two:
+  patient: two
+  provider: two
+  record_type: 1
+  record_date: 2025-04-28
+  title: MyString
+  description: MyText
+  file_url: MyString
+  status: 1

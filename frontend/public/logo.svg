@@ -1,0 +1,90 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @keyframes subtle-glow {
+        0%, 100% { filter: drop-shadow(0 0 1px #14b8a630); }
+        50% { filter: drop-shadow(0 0 3px #14b8a650); }
+      }
+      @keyframes gentle-beat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
+      @keyframes soft-wave {
+        0% { stroke-dashoffset: 20; }
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes light-fade {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 0.9; }
+      }
+      
+      .animated-logo {
+        animation: subtle-glow 4s ease-in-out infinite;
+      }
+      .animated-cross {
+        animation: gentle-beat 3s ease-in-out infinite;
+      }
+      .animated-wave {
+        animation: soft-wave 3s linear infinite;
+      }
+      .animated-shield {
+        animation: light-fade 4s ease-in-out infinite;
+      }
+    </style>
+  </defs>
+  
+  <!-- Background Shield -->
+  <path
+    d="M40 5L10 15V40C10 55 20 65 40 75C60 65 70 55 70 40V15L40 5Z"
+    fill="#0d9488"
+  />
+  
+  <!-- Inner Shield -->
+  <path
+    d="M40 15L20 22V40C20 50 28 58 40 65C52 58 60 50 60 40V22L40 15Z"
+    fill="#14b8a6"
+    opacity="0.7"
+    class="animated-shield"
+  />
+  
+  <!-- Medical Cross -->
+  <path
+    d="M40 25V55M25 40H55"
+    stroke="white"
+    stroke-width="6"
+    stroke-linecap="round"
+    class="animated-cross"
+  />
+  
+  <!-- Heartbeat Line - simplified -->
+  <path
+    d="M25 48C25 48 30 48 33 48C36 48 37 42 40 42C43 42 44 48 47 48C50 48 55 48 55 48"
+    fill="none"
+    stroke="white"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-dasharray="2 2"
+    class="animated-wave"
+  />
+  
+  <!-- Single DNA Helix - simplified -->
+  <g opacity="0.6">
+    <path
+      d="M18 30C18 30 16 34 18 38C20 42 18 46 18 46"
+      fill="none"
+      stroke="#0f766e"
+      stroke-width="1"
+      stroke-linecap="round"
+    />
+    <path
+      d="M22 30C22 30 24 34 22 38C20 42 22 46 22 46"
+      fill="none"
+      stroke="#0f766e"
+      stroke-width="1"
+      stroke-linecap="round"
+    />
+    <!-- DNA Connections -->
+    <line x1="18" y1="36" x2="22" y2="36" stroke="#0f766e" stroke-width="1" />
+    <line x1="18" y1="40" x2="22" y2="40" stroke="#0f766e" stroke-width="1" />
+  </g>
+</svg> 

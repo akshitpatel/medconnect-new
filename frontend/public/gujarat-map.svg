@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main Gujarat shape - simplified outline -->
+  <path d="M300,100 C250,120 200,150 180,200 C150,270 120,350 150,410 C170,450 220,470 250,480 C300,500 350,510 400,520 C450,530 500,535 550,520 C600,505 640,480 660,450 C690,400 700,350 690,300 C680,250 650,200 610,170 C570,140 520,120 470,110 C420,100 370,80 320,90 C310,95 305,98 300,100 Z" 
+        fill="#e0f2f1" stroke="#00897b" stroke-width="2"/>
+  
+  <!-- Districts -->
+  <g stroke="#00897b" stroke-width="1" fill-opacity="0.2">
+    <path d="M300,100 C280,120 260,150 250,180 C220,250 210,300 240,330 C270,360 320,370 350,360 C380,350 410,330 430,300 C450,270 460,230 440,200 C420,170 390,150 360,140 C330,130 320,120 300,100 Z" fill="#b2dfdb"/>
+    <path d="M350,360 C330,380 320,400 330,430 C340,460 360,480 390,490 C420,500 450,500 480,490 C510,480 530,460 540,430 C550,400 550,370 530,350 C510,330 480,320 450,320 C420,320 390,330 370,340 C360,350 350,360 350,360 Z" fill="#80cbc4"/>
+    <path d="M540,430 C520,460 510,490 520,520 C530,550 550,570 580,580 C610,590 640,590 670,580 C700,570 720,550 730,520 C740,490 740,460 720,440 C700,420 670,410 640,410 C610,410 580,420 560,430 C550,430 540,430 540,430 Z" fill="#4db6ac"/>
+  </g>
+  
+  <!-- Major cities -->
+  <g>
+    <!-- Ahmedabad -->
+    <circle cx="350" cy="270" r="8" fill="#e57373"/>
+    <text x="365" y="273" font-family="Arial" font-size="14" fill="#b71c1c">Ahmedabad</text>
+    
+    <!-- Surat -->
+    <circle cx="300" cy="450" r="8" fill="#e57373"/>
+    <text x="315" y="453" font-family="Arial" font-size="14" fill="#b71c1c">Surat</text>
+    
+    <!-- Vadodara -->
+    <circle cx="380" cy="350" r="7" fill="#e57373"/>
+    <text x="395" y="353" font-family="Arial" font-size="14" fill="#b71c1c">Vadodara</text>
+    
+    <!-- Rajkot -->
+    <circle cx="200" cy="300" r="7" fill="#e57373"/>
+    <text x="170" y="303" font-family="Arial" font-size="14" fill="#b71c1c">Rajkot</text>
+    
+    <!-- Gandhinagar -->
+    <circle cx="340" cy="240" r="6" fill="#ef9a9a"/>
+    <text x="350" y="243" font-family="Arial" font-size="12" fill="#d32f2f">Gandhinagar</text>
+    
+    <!-- Jamnagar -->
+    <circle cx="150" cy="250" r="6" fill="#ef9a9a"/>
+    <text x="120" y="253" font-family="Arial" font-size="12" fill="#d32f2f">Jamnagar</text>
+    
+    <!-- Bhavnagar -->
+    <circle cx="280" cy="320" r="6" fill="#ef9a9a"/>
+    <text x="290" y="323" font-family="Arial" font-size="12" fill="#d32f2f">Bhavnagar</text>
+    
+    <!-- Junagadh -->
+    <circle cx="180" cy="360" r="5" fill="#ef9a9a"/>
+    <text x="150" y="363" font-family="Arial" font-size="12" fill="#d32f2f">Junagadh</text>
+    
+    <!-- Anand -->
+    <circle cx="360" cy="320" r="5" fill="#ef9a9a"/>
+    <text x="370" y="323" font-family="Arial" font-size="12" fill="#d32f2f">Anand</text>
+    
+    <!-- Navsari -->
+    <circle cx="330" cy="480" r="5" fill="#ef9a9a"/>
+    <text x="340" y="483" font-family="Arial" font-size="12" fill="#d32f2f">Navsari</text>
+    
+    <!-- Mehsana -->
+    <circle cx="300" cy="220" r="5" fill="#ef9a9a"/>
+    <text x="310" y="223" font-family="Arial" font-size="12" fill="#d32f2f">Mehsana</text>
+    
+    <!-- Porbandar -->
+    <circle cx="120" cy="380" r="5" fill="#ef9a9a"/>
+    <text x="90" y="383" font-family="Arial" font-size="12" fill="#d32f2f">Porbandar</text>
+  </g>
+  
+  <!-- Arabian Sea -->
+  <text x="100" y="450" font-family="Arial" font-size="20" fill="#0277bd" transform="rotate(-40, 100, 450)">Arabian Sea</text>
+  
+  <!-- Borders -->
+  <path d="M150,100 C130,130 120,160 110,190 C100,220 90,250 80,280" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  <text x="50" y="180" font-family="Arial" font-size="14" fill="#616161" transform="rotate(-40, 50, 180)">Rajasthan</text>
+  
+  <path d="M650,450 C670,430 690,410 710,390 C730,370 750,350 770,330" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  <text x="700" y="380" font-family="Arial" font-size="14" fill="#616161" transform="rotate(40, 700, 380)">Maharashtra</text>
+  
+  <path d="M550,110 C580,90 610,70 640,50" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  <text x="580" y="65" font-family="Arial" font-size="14" fill="#616161">Madhya Pradesh</text>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#00695c" text-anchor="middle">Gujarat</text>
+  
+  <!-- Clickable areas - for future interactivity -->
+  <g opacity="0">
+    <circle cx="350" cy="270" r="15" id="ahmedabad" cursor="pointer"/>
+    <circle cx="300" cy="450" r="15" id="surat" cursor="pointer"/>
+    <circle cx="380" cy="350" r="15" id="vadodara" cursor="pointer"/>
+    <circle cx="200" cy="300" r="15" id="rajkot" cursor="pointer"/>
+    <circle cx="340" cy="240" r="12" id="gandhinagar" cursor="pointer"/>
+    <circle cx="150" cy="250" r="12" id="jamnagar" cursor="pointer"/>
+    <circle cx="280" cy="320" r="12" id="bhavnagar" cursor="pointer"/>
+    <circle cx="180" cy="360" r="12" id="junagadh" cursor="pointer"/>
+  </g>
+</svg> 

@@ -1,0 +1,2543 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useTheme } from '@/app/contexts/ThemeContext';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+
+// Logo Options Component
+const LogoSelection = () => {
+  const { isDarkMode, toggleTheme } = useTheme();
+  const [selectedLogo, setSelectedLogo] = useState<number | null>(null);
+  
+  // Common size styling for all logos
+  const logoContainerStyle = "w-full p-6 rounded-lg border transition-all duration-300 flex flex-col items-center";
+  const logoStyle = "w-16 h-16 mb-3";
+  const labelStyle = "font-bold text-xl mb-2";
+  
+  // Color palette for logos
+  const primaryColors = [
+    "#0d9488", // Teal
+    "#0891b2", // Cyan
+    "#0369a1", // Sky
+    "#0284c7", // Light Blue
+    "#059669", // Emerald
+  ];
+  
+  const secondaryColors = [
+    "#14b8a6", // Light Teal
+    "#06b6d4", // Light Cyan
+    "#0ea5e9", // Light Sky
+    "#38bdf8", // Lighter Blue
+    "#10b981", // Light Emerald
+  ];
+
+  // Animation keyframes
+  const pulseKeyframes = {
+    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+    '50%': { opacity: 0.5, transform: 'scale(1.1)' }
+  };
+
+  const rotateKeyframes = {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' }
+  };
+
+  const morphKeyframes = {
+    '0%': { d: 'path("M8 32L8 8L14 18L20 8L26 18L32 8L32 32")' },
+    '50%': { d: 'path("M8 32C8 8 14 18 20 8C26 18 32 8 32 32")' },
+    '100%': { d: 'path("M8 32L8 8L14 18L20 8L26 18L32 8L32 32")' }
+  };
+
+  // CATEGORY: FEATURED DESIGNS (variations of 21, 25, 28)
+  const featuredLogos = [
+    // Variation 1: Enhanced Circle with Pulse Animation (based on logo 21)
+    (id: number) => {
+      const primary = primaryColors[4];
+      const secondary = secondaryColors[4];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} className="animate-pulse" />
+            <path
+              d="M10 20h4l2-4l4 8l2-4h8"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '1.5s' }}
+            />
+            <circle cx="20" cy="20" r="3" fill={secondary} className="animate-ping" style={{ animationDuration: '1.5s' }} />
+            <circle cx="15" cy="15" r="1.5" fill="white" className="animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            <circle cx="25" cy="15" r="1.5" fill="white" className="animate-ping" style={{ animationDuration: '2s', animationDelay: '1s' }} />
+            <circle cx="15" cy="25" r="1.5" fill="white" className="animate-ping" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
+            <circle cx="25" cy="25" r="1.5" fill="white" className="animate-ping" style={{ animationDuration: '2s', animationDelay: '2s' }} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // Variation 2: M replaced with Animated Circle (based on logo 21)
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            {/* Animated Circle instead of M */}
+            <circle cx="12" cy="20" r="10" fill={primary} className="animate-pulse" />
+            <path
+              d="M8 20h2l1-2l2 4l1-2h4"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            <circle cx="12" cy="20" r="2" fill={secondary} className="animate-ping" style={{ animationDuration: '2s' }} />
+            
+            {/* edConnect text */}
+            <text x="19" y="24" fill={primary} fontSize="10" fontWeight="bold">edC</text>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // Variation 3: Enhanced Floating H with Dots (based on logo 25)
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M8 8V32M32 8V32M8 20H32" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            <circle cx="20" cy="20" r="3" fill={secondary} className="animate-ping" />
+            
+            <circle cx="8" cy="8" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '1.8s' }} />
+            <circle cx="32" cy="8" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '1.8s' }} />
+            <circle cx="8" cy="32" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '1.8s' }} />
+            <circle cx="32" cy="32" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.7s', animationDuration: '1.8s' }} />
+            
+            <path
+              d="M15 14C15 14 18 12 20 14C22 16 25 14 25 14"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '3s' }}
+            />
+            
+            <path
+              d="M15 26C15 26 18 24 20 26C22 28 25 26 25 26"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '3s', animationDelay: '1.5s' }}
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // Variation 4: Enhanced Caduceus with Dynamic Elements (based on logo 28)
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="16" fill={primary} opacity="0.2" className="animate-pulse" />
+            
+            <path
+              d="M20 6V34M16 10C16 10 10 14 10 20C10 26 16 30 16 30M24 10C24 10 30 14 30 20C30 26 24 30 24 30"
+              stroke={primary}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            
+            <path
+              d="M14 14C14 14 17 12 20 14C23 16 26 14 26 14"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="animate-[snake1_4s_ease-in-out_infinite]"
+            />
+            
+            <path
+              d="M14 26C14 26 17 24 20 26C22 28 24 26 24 26"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="animate-[snake2_4s_ease-in-out_infinite]"
+            />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="2.5" 
+              fill={secondary} 
+              className="animate-ping"
+              style={{ animationDuration: '2s' }}
+            />
+            
+            <text 
+              x="12" 
+              y="36" 
+              fill={secondary} 
+              fontSize="5" 
+              fontWeight="bold"
+              className="animate-pulse"
+            >
+              MC
+            </text>
+            
+            <style jsx>{`
+              @keyframes snake1 {
+                0%, 100% {
+                  d: path('M14 14C14 14 17 12 20 14C23 16 26 14 26 14');
+                  stroke-width: 2;
+                }
+                50% {
+                  d: path('M14 14C14 14 17 16 20 14C23 12 26 14 26 14');
+                  stroke-width: 2.5;
+                }
+              }
+              
+              @keyframes snake2 {
+                0%, 100% {
+                  d: path('M14 26C14 26 17 24 20 26C23 28 26 26 26 26');
+                  stroke-width: 2;
+                }
+                50% {
+                  d: path('M14 26C14 26 17 28 20 26C23 24 26 26 26 26');
+                  stroke-width: 2.5;
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // Variation 5: Combined Elements (mix of 21, 25, 28)
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            {/* Circle background from 21 */}
+            <circle cx="20" cy="20" r="18" fill={primary} opacity="0.2" className="animate-pulse" />
+            
+            {/* H structure from 25 */}
+            <path 
+              d="M12 10V30M28 10V30M12 20H28" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="2.5" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            
+            {/* Snakes from 28 */}
+            <path
+              d="M16 14C16 14 18 12 20 14C22 16 24 14 24 14"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-bounce"
+              style={{ animationDuration: '2s' }}
+            />
+            
+            <path
+              d="M16 26C16 26 18 24 20 26C22 28 24 26 24 26"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-bounce"
+              style={{ animationDuration: '2s', animationDelay: '1s' }}
+            />
+            
+            {/* Pulse from 21 */}
+            <path
+              d="M10 20h4l2-4l4 8l2-4h8"
+              stroke="white"
+              strokeWidth="1"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '3s' }}
+            />
+            
+            <circle cx="20" cy="20" r="2.5" fill={secondary} className="animate-ping" style={{ animationDuration: '1.5s' }} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    }
+  ];
+
+  // CATEGORY 1: WORDMARKS/LOGOTYPES
+  const wordmarks = [
+    // 1. Modern Script Wordmark
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            <text x="20" y="22" 
+              fill={primary} 
+              fontSize="9" 
+              fontWeight="bold" 
+              textAnchor="middle" 
+              fontStyle="italic"
+              letterSpacing="-0.5">
+              MedC
+            </text>
+            <path 
+              d="M15 25C20 25 25 25 30 25" 
+              stroke={secondary} 
+              strokeWidth="1" 
+              fill="none" 
+              strokeLinecap="round" 
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r font-bold italic" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span className="font-bold italic">Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 2. Tech-Focused Wordmark
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            <text x="20" y="22" 
+              fill={primary} 
+              fontSize="7.5" 
+              fontWeight="bold" 
+              textAnchor="middle" 
+              letterSpacing="0.8">
+              MED
+            </text>
+            <text x="20" y="28" 
+              fill={secondary} 
+              fontSize="4" 
+              fontWeight="bold" 
+              textAnchor="middle" 
+              letterSpacing="1">
+              CONNECT
+            </text>
+            <rect x="10" y="23.5" width="20" height="0.8" fill={primary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="font-bold uppercase tracking-wider" style={{color: primary}}>Med</span>
+            <span className="font-bold uppercase tracking-wider text-sm" style={{color: secondary}}>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 3. Elegant Stacked Wordmark
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            <text x="20" y="18" 
+              fill={primary} 
+              fontSize="8" 
+              fontWeight="bold" 
+              textAnchor="middle">
+              MED
+            </text>
+            <text x="20" y="28" 
+              fill={secondary} 
+              fontSize="7" 
+              fontWeight="normal" 
+              textAnchor="middle">
+              connect
+            </text>
+            <line x1="14" y1="22" x2="26" y2="22" stroke={primary} strokeWidth="0.5" />
+          </svg>
+          <div className="font-semibold text-xl flex flex-col items-center">
+            <span className="font-bold" style={{color: primary}}>MED</span>
+            <span className="font-normal" style={{color: secondary}}>connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 2: LETTERFORMS
+  const letterforms = [
+    // 3. M Letterform with Medical Symbol
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path d="M8 32L8 8L14 18L20 8L26 18L32 8L32 32" fill="none" stroke={primary} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
+            <circle cx="20" cy="22" r="3" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 4. C Letterform with Health Symbols
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path d="M32 12C28 6 18 4 12 10C6 16 8 28 16 32C22 35 30 32 32 28" fill="none" stroke={primary} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
+            <path d="M20 15L20 25M15 20L25 20" stroke={secondary} strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 6. M Letterform with Heartbeat Line
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* M Letterform */}
+            <path 
+              d="M10 32L10 12L16 20L22 12L28 20L28 32" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="3" 
+              strokeLinejoin="round" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Heartbeat Line */}
+            <path 
+              d="M8 26 H13 L15 22 L17 30 L19 26 H30" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              fill="none" 
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 7. C Letterform with DNA Strand
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* C Letterform */}
+            <path 
+              d="M30 12C26 6 18 4 12 10C6 16 8 26 14 30C20 34 28 30 30 26" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="3" 
+              strokeLinejoin="round" 
+              strokeLinecap="round" 
+            />
+            
+            {/* DNA Strand */}
+            <path 
+              d="M16 14C20 18 24 18 28 14" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1" 
+              strokeLinecap="round" 
+            />
+            <path 
+              d="M16 22C20 26 24 26 28 22" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1" 
+              strokeLinecap="round" 
+            />
+            <line x1="18" y1="14" x2="18" y2="22" stroke={secondary} strokeWidth="1" />
+            <line x1="22" y1="14" x2="22" y2="22" stroke={secondary} strokeWidth="1" />
+            <line x1="26" y1="14" x2="26" y2="22" stroke={secondary} strokeWidth="1" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    }
+  ];
+  
+  // NEW: 11 Additional Letterform Variations with floating dots and dynamic elements
+  const letterformVariations = [
+    // Enhanced Cross Design (#13) with full logo text
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="text-xs text-gray-500 absolute top-2 right-2">Logo #13</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            {/* Animated Cross with Enhanced Design */}
+            <path 
+              d="M20 6L20 34M6 20L34 20" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="3" 
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            
+            {/* Circular background */}
+            <circle cx="20" cy="20" r="14" fill="none" stroke={primary} strokeWidth="0.5" opacity="0.3" className="animate-spin" style={{ animationDuration: '20s' }} />
+            
+            {/* Corner elements */}
+            <path d="M13 13L17 17" stroke={secondary} strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M23 13L27 17" stroke={secondary} strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M13 27L17 23" stroke={secondary} strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M23 27L27 23" stroke={secondary} strokeWidth="1.5" strokeLinecap="round" />
+            
+            {/* Pulsing center */}
+            <circle cx="20" cy="20" r="3" fill={secondary} className="animate-ping" style={{ animationDuration: '1.5s' }} />
+            
+            {/* Floating dots at cross endpoints */}
+            <circle cx="20" cy="6" r="1.5" fill={secondary}>
+              <animate attributeName="cy" values="6;7;5;6" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="20" cy="34" r="1.5" fill={secondary}>
+              <animate attributeName="cy" values="34;33;35;34" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="6" cy="20" r="1.5" fill={secondary}>
+              <animate attributeName="cx" values="6;7;5;6" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="34" cy="20" r="1.5" fill={secondary}>
+              <animate attributeName="cx" values="34;33;35;34" dur="2s" repeatCount="indefinite" />
+            </circle>
+          </svg>
+          <div className="font-semibold text-xl mt-2">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">Enhanced Medical Cross Design</div>
+        </div>
+      );
+    }
+  ];
+  
+  // CATEGORY 3: LETTERMARKS/MONOGRAM LOGOS
+  const lettermarks = [
+    // 5. MC Monogram in Square
+    (id: number) => {
+      const primary = primaryColors[4];
+      const secondary = secondaryColors[4];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect x="4" y="4" width="32" height="32" rx="4" fill={primary} />
+            <text x="10" y="26" fill="white" fontSize="16" fontWeight="bold">MC</text>
+            <circle cx="20" cy="20" r="1.5" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 6. MC Monogram in Circle
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} />
+            <text x="11" y="25" fill="white" fontSize="12" fontWeight="bold">MC</text>
+            <line x1="11" y1="28" x2="29" y2="28" stroke={secondary} strokeWidth="2" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 7. MC Monogram with Hexagon Frame
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Hexagon Frame */}
+            <path 
+              d="M20 5L33 12.5L33 27.5L20 35L7 27.5L7 12.5Z" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="2" 
+            />
+            
+            {/* MC Text */}
+            <text 
+              x="20" 
+              y="24" 
+              fill={primary} 
+              fontSize="10" 
+              fontWeight="bold" 
+              textAnchor="middle"
+            >
+              MC
+            </text>
+            
+            {/* Decorative Element */}
+            <line x1="14" y1="28" x2="26" y2="28" stroke={secondary} strokeWidth="1.5" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 8. MC Monogram with Interlocking Letters
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* M Letter */}
+            <path 
+              d="M10 30V14L15 22L20 14L25 22V30" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="3" 
+              strokeLinejoin="round" 
+              strokeLinecap="round" 
+            />
+            
+            {/* C Letter */}
+            <path 
+              d="M30 18C28 14 24 12 20 14C16 16 15 22 18 26C21 30 26 30 30 26" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="2.5" 
+              strokeLinejoin="round" 
+              strokeLinecap="round" 
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 4: LOGO SYMBOLS/BRAND MARKS/PICTORIAL MARKS
+  const symbols = [
+    // 7. Circle with Cross (Medical Symbol)
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} />
+            <path
+              d="M20 10L20 30M10 20L30 20"
+              stroke="white"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <circle cx="20" cy="20" r="3" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 8. Circle with Stethoscope Shape
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} />
+            <path
+              d="M14 16C14 13.79 15.79 12 18 12H18.5C20.43 12 22 13.57 22 15.5V15.5C22 17.43 20.43 19 18.5 19H18C15.79 19 14 17.21 14 15"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <path
+              d="M14 16V24C14 26.21 15.79 28 18 28H22C24.21 28 26 26.21 26 24V20"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <circle cx="26" cy="16" r="3" fill={secondary} stroke="white" strokeWidth="1.5" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 11. Medical Stethoscope Symbol
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Stethoscope Head */}
+            <circle cx="15" cy="28" r="5" fill={primary} />
+            
+            {/* Stethoscope Tube */}
+            <path 
+              d="M15 23C15 18 15 15 20 15C25 15 25 10 25 8" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Stethoscope Earpieces */}
+            <circle cx="22" cy="8" r="2" fill={primary} />
+            <circle cx="28" cy="8" r="2" fill={primary} />
+            <path 
+              d="M22 8H28" 
+              stroke={primary} 
+              strokeWidth="2" 
+            />
+            
+            {/* Decorative Element */}
+            <circle cx="15" cy="28" r="2" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 12. Medical Caduceus Symbol
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Central Staff */}
+            <line 
+              x1="20" 
+              y1="8" 
+              x2="20" 
+              y2="32" 
+              stroke={primary} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Wings */}
+            <path 
+              d="M12 12C16 16 24 16 28 12" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Snakes */}
+            <path 
+              d="M16 10C14 14 16 18 20 20C24 22 26 26 24 30" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+            
+            <path 
+              d="M24 10C26 14 24 18 20 20C16 22 14 26 16 30" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Snake Heads */}
+            <circle cx="16" cy="10" r="1.5" fill={secondary} />
+            <circle cx="24" cy="10" r="1.5" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 13. Digital Healthcare Symbol
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Health Tech Network Shape */}
+            <path 
+              d="M20 8L32 20L20 32L8 20Z" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="2" 
+            />
+            
+            {/* Medical Cross */}
+            <path 
+              d="M20 14L20 26M14 20L26 20" 
+              stroke={secondary} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Connection Points */}
+            <circle cx="20" cy="8" r="2" fill={primary} />
+            <circle cx="32" cy="20" r="2" fill={primary} />
+            <circle cx="20" cy="32" r="2" fill={primary} />
+            <circle cx="8" cy="20" r="2" fill={primary} />
+            <circle cx="20" cy="20" r="2.5" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 14. Healthcare Heart Symbol
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Heart Shape */}
+            <path 
+              d="M20 32C20 32 30 24 30 16C30 10 24 8 20 12C16 8 10 10 10 16C10 24 20 32 20 32Z" 
+              fill={primary} 
+            />
+            
+            {/* Medical Plus */}
+            <path 
+              d="M20 15L20 25M15 20L25 20" 
+              stroke="white" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Decorative Element */}
+            <circle cx="15" cy="16" r="1.5" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 15. Medical Shield Symbol
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Shield Shape */}
+            <path 
+              d="M20 4C20 4 8 8 8 16V28C8 28 14 34 20 36C26 34 32 28 32 28V16C32 8 20 4 20 4Z" 
+              fill={primary} 
+            />
+            
+            {/* Caduceus Staff */}
+            <path 
+              d="M20 12V28" 
+              stroke="white" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Serpents */}
+            <path 
+              d="M17 14C16 16 16 20 20 22C24 24 24 28 23 30" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+            
+            <path 
+              d="M23 14C24 16 24 20 20 22C16 24 16 28 17 30" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+            
+            {/* Wings */}
+            <path 
+              d="M14 16C17 18 23 18 26 16" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 5: ABSTRACT LOGO MARKS
+  const abstractMarks = [
+    // 9. Modern Rectangle with Data Lines
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect x="2" y="2" width="36" height="36" rx="8" fill={primary} />
+            <path
+              d="M12 10C16 13 24 13 28 10M12 16C16 19 24 19 28 16M12 22C16 25 24 25 28 22M12 28C16 31 24 31 28 28"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <circle cx="12" cy="10" r="1.5" fill={secondary} />
+            <circle cx="28" cy="10" r="1.5" fill={secondary} />
+            <circle cx="12" cy="16" r="1.5" fill="white" />
+            <circle cx="28" cy="16" r="1.5" fill="white" />
+            <circle cx="12" cy="22" r="1.5" fill={secondary} />
+            <circle cx="28" cy="22" r="1.5" fill={secondary} />
+            <circle cx="12" cy="28" r="1.5" fill="white" />
+            <circle cx="28" cy="28" r="1.5" fill="white" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 10. Rounded Diamond with Node Network
+    (id: number) => {
+      const primary = primaryColors[4];
+      const secondary = secondaryColors[4];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect 
+              x="20" 
+              y="5" 
+              width="22" 
+              height="22" 
+              transform="rotate(45 20 20)" 
+              rx="5"
+              fill={primary} 
+            />
+            <circle cx="20" cy="14" r="2.5" fill="white" />
+            <circle cx="14" cy="20" r="2.5" fill="white" />
+            <circle cx="26" cy="20" r="2.5" fill="white" />
+            <circle cx="20" cy="26" r="2.5" fill="white" />
+            <circle cx="20" cy="20" r="3" fill={secondary} />
+            <line x1="20" y1="14" x2="20" y2="20" stroke="white" strokeWidth="1.5" />
+            <line x1="14" y1="20" x2="20" y2="20" stroke="white" strokeWidth="1.5" />
+            <line x1="26" y1="20" x2="20" y2="20" stroke="white" strokeWidth="1.5" />
+            <line x1="20" y1="26" x2="20" y2="20" stroke="white" strokeWidth="1.5" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 6: MASCOTS
+  const mascots = [
+    // 11. Doctor Character
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="14" r="8" fill={primary} /> {/* Head */}
+            <rect x="14" y="22" width="12" height="16" rx="2" fill={primary} /> {/* Body */}
+            <circle cx="17" cy="12" r="1.5" fill="white" /> {/* Left eye */}
+            <circle cx="23" cy="12" r="1.5" fill="white" /> {/* Right eye */}
+            <path d="M18 16C19 17 21 17 22 16" stroke="white" strokeWidth="1" strokeLinecap="round" /> {/* Smile */}
+            <rect x="16" y="22" width="8" height="3" fill={secondary} /> {/* Collar */}
+            <path d="M17 7L16 4M23 7L24 4" stroke="white" strokeWidth="1" strokeLinecap="round" /> {/* Hair */}
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 12. Health Guardian Character
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="13" r="7" fill={primary} /> {/* Head */}
+            <path d="M10 32C10 24 30 24 30 32" fill={primary} /> {/* Cape */}
+            <rect x="16" y="20" width="8" height="12" rx="2" fill={primary} /> {/* Body */}
+            <path d="M16 26L12 30M24 26L28 30" stroke={primary} strokeWidth="2" /> {/* Arms */}
+            <circle cx="17" cy="12" r="1.5" fill="white" /> {/* Left eye */}
+            <circle cx="23" cy="12" r="1.5" fill="white" /> {/* Right eye */}
+            <path d="M18 15C19 16 21 16 22 15" stroke="white" strokeWidth="1" strokeLinecap="round" /> {/* Smile */}
+            <path d="M20 14L20 18M18 16L22 16" stroke={secondary} strokeWidth="1" strokeLinecap="round" /> {/* Medical symbol */}
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 7: EMBLEMS
+  const emblems = [
+    // 13. Shield with Healthcare Symbol
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M20 2C20 2 8 7 8 14V28C8 28 14 35 20 38C26 35 32 28 32 28V14C32 7 20 2 20 2Z" 
+              fill={primary}
+            />
+            <path
+              d="M20 12V26M13 19H27"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            <circle cx="20" cy="19" r="2.5" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 14. Circle with Star of Life
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} />
+            <path
+              d="M20 8V32M14 10.5L26 29.5M10.5 14L29.5 26M8 20H32M14 29.5L26 10.5M10.5 26L29.5 14"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="20" cy="20" r="3" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 8: COMBINATION MARKS
+  const combinationMarks = [
+    // 15. Medical Symbol with Text
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="15" cy="20" r="10" fill={primary} />
+            <path
+              d="M15 12V28M9 20H21"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <text x="22" y="23" fill={primary} fontSize="10" fontWeight="bold">MC</text>
+            <circle cx="15" cy="20" r="2" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 16. Square with Caduceus Symbol and Text
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect x="4" y="4" width="32" height="32" rx="4" fill={primary} />
+            <path
+              d="M20 8V32M16 12C16 12 12 14 12 20C12 26 16 28 16 28M24 12C24 12 28 14 28 20C28 26 24 28 24 28"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M14 16C14 16 17 14 20 16C23 18 26 16 26 16M14 24C14 24 17 22 20 24C23 26 26 24 26 24"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+            <circle cx="20" cy="20" r="2" fill={secondary} />
+            <text x="12" y="35" fill="white" fontSize="5" fontWeight="bold">MEDCONNECT</text>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 9: DYNAMIC MARKS
+  const dynamicMarks = [
+    // 17. Hexagon with Pulse Line
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M20 2L35.3205 11V29L20 38L4.67949 29V11L20 2Z" 
+              fill={primary}
+            />
+            <path
+              d="M10 20h4l3-6l4 12l3-6h6"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="20" cy="20" r="2" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 18. Octagon with Heart Rhythm
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M13.7 4H26.3L36 13.7V26.3L26.3 36H13.7L4 26.3V13.7L13.7 4Z" 
+              fill={primary} 
+            />
+            <path
+              d="M8 20H14L16 15L18 25L20 15L22 25L24 20H32"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="20" cy="20" r="2" fill={secondary} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 19. Dynamic Wave Flow
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Background Circle */}
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="16" 
+              fill={primary} 
+            />
+            
+            {/* Wave Patterns */}
+            <path 
+              d="M8 20C12 15 16 25 20 20C24 15 28 25 32 20" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="2" 
+              strokeLinecap="round"
+              className="animate-[wave-flow_3s_ease-in-out_infinite]" 
+            />
+            
+            <path 
+              d="M8 15C12 10 16 20 20 15C24 10 28 20 32 15" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
+              className="animate-[wave-flow_3s_ease-in-out_infinite]"
+              style={{ animationDelay: '0.2s' }} 
+            />
+            
+            <path 
+              d="M8 25C12 20 16 30 20 25C24 20 28 30 32 25" 
+              fill="none" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
+              className="animate-[wave-flow_3s_ease-in-out_infinite]"
+              style={{ animationDelay: '0.4s' }} 
+            />
+            
+            <style jsx>{`
+              @keyframes wave-flow {
+                0%, 100% {
+                  transform: translateX(0);
+                }
+                50% {
+                  transform: translateX(2px);
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 20. Dynamic Pulse Circles
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Main Circle */}
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="8" 
+              fill={primary} 
+            />
+            
+            {/* Pulse Circles */}
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="12" 
+              fill="none"
+              stroke={primary}
+              strokeWidth="0.8"
+              opacity="0.8"
+              className="animate-[pulse-out_2s_ease-in-out_infinite]" 
+            />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="16" 
+              fill="none"
+              stroke={primary}
+              strokeWidth="0.6"
+              opacity="0.5"
+              className="animate-[pulse-out_2s_ease-in-out_infinite]"
+              style={{ animationDelay: '0.3s' }} 
+            />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="20" 
+              fill="none"
+              stroke={primary}
+              strokeWidth="0.4"
+              opacity="0.3"
+              className="animate-[pulse-out_2s_ease-in-out_infinite]"
+              style={{ animationDelay: '0.6s' }} 
+            />
+            
+            {/* Cross Symbol */}
+            <path 
+              d="M20 16L20 24M16 20L24 20" 
+              stroke={secondary} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+            
+            <style jsx>{`
+              @keyframes pulse-out {
+                0% {
+                  transform: scale(0.8);
+                  opacity: 0.8;
+                }
+                50% {
+                  opacity: 0.4;
+                }
+                100% {
+                  transform: scale(1.2);
+                  opacity: 0;
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 21. Dynamic Flow Network
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            {/* Central Node */}
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="3" 
+              fill={primary} 
+              className="animate-pulse"
+            />
+            
+            {/* Network Nodes */}
+            <circle cx="12" cy="12" r="2.5" fill={primary} className="animate-pulse" style={{ animationDelay: '0.1s' }} />
+            <circle cx="28" cy="12" r="2.5" fill={primary} className="animate-pulse" style={{ animationDelay: '0.2s' }} />
+            <circle cx="12" cy="28" r="2.5" fill={primary} className="animate-pulse" style={{ animationDelay: '0.3s' }} />
+            <circle cx="28" cy="28" r="2.5" fill={primary} className="animate-pulse" style={{ animationDelay: '0.4s' }} />
+            
+            {/* Connection Lines */}
+            <line 
+              x1="13.5" 
+              y1="13.5" 
+              x2="18.5" 
+              y2="18.5" 
+              stroke={secondary} 
+              strokeWidth="1"
+              className="animate-[line-flow_3s_ease-in-out_infinite]" 
+            />
+            
+            <line 
+              x1="26.5" 
+              y1="13.5" 
+              x2="21.5" 
+              y2="18.5" 
+              stroke={secondary} 
+              strokeWidth="1"
+              className="animate-[line-flow_3s_ease-in-out_infinite]"
+              style={{ animationDelay: '0.5s' }} 
+            />
+            
+            <line 
+              x1="13.5" 
+              y1="26.5" 
+              x2="18.5" 
+              y2="21.5" 
+              stroke={secondary} 
+              strokeWidth="1"
+              className="animate-[line-flow_3s_ease-in-out_infinite]"
+              style={{ animationDelay: '1s' }} 
+            />
+            
+            <line 
+              x1="26.5" 
+              y1="26.5" 
+              x2="21.5" 
+              y2="21.5" 
+              stroke={secondary} 
+              strokeWidth="1"
+              className="animate-[line-flow_3s_ease-in-out_infinite]"
+              style={{ animationDelay: '1.5s' }} 
+            />
+            
+            {/* Flow Particles */}
+            <circle 
+              cx="16" 
+              cy="16" 
+              r="0.8" 
+              fill={secondary}
+              className="animate-[particle-flow1_3s_ease-in-out_infinite]" 
+            />
+            
+            <circle 
+              cx="24" 
+              cy="16" 
+              r="0.8" 
+              fill={secondary}
+              className="animate-[particle-flow2_3s_ease-in-out_infinite]" 
+            />
+            
+            <circle 
+              cx="16" 
+              cy="24" 
+              r="0.8" 
+              fill={secondary}
+              className="animate-[particle-flow3_3s_ease-in-out_infinite]" 
+            />
+            
+            <circle 
+              cx="24" 
+              cy="24" 
+              r="0.8" 
+              fill={secondary}
+              className="animate-[particle-flow4_3s_ease-in-out_infinite]" 
+            />
+            
+            <style jsx>{`
+              @keyframes line-flow {
+                0%, 100% {
+                  opacity: 0.4;
+                }
+                50% {
+                  opacity: 1;
+                }
+              }
+              @keyframes particle-flow1 {
+                0% {
+                  transform: translate(0, 0);
+                  opacity: 0;
+                }
+                50% {
+                  opacity: 1;
+                }
+                100% {
+                  transform: translate(4px, 4px);
+                  opacity: 0;
+                }
+              }
+              @keyframes particle-flow2 {
+                0% {
+                  transform: translate(0, 0);
+                  opacity: 0;
+                }
+                50% {
+                  opacity: 1;
+                }
+                100% {
+                  transform: translate(-4px, 4px);
+                  opacity: 0;
+                }
+              }
+              @keyframes particle-flow3 {
+                0% {
+                  transform: translate(0, 0);
+                  opacity: 0;
+                }
+                50% {
+                  opacity: 1;
+                }
+                100% {
+                  transform: translate(4px, -4px);
+                  opacity: 0;
+                }
+              }
+              @keyframes particle-flow4 {
+                0% {
+                  transform: translate(0, 0);
+                  opacity: 0;
+                }
+                50% {
+                  opacity: 1;
+                }
+                100% {
+                  transform: translate(-4px, -4px);
+                  opacity: 0;
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY 10: ANIMATED LOGOS
+  const animatedLogos = [
+    // 19. Circle with Pulse Animation
+    (id: number) => {
+      const primary = primaryColors[4];
+      const secondary = secondaryColors[4];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="18" fill={primary} />
+            <path
+              d="M10 20h4l2-4l4 8l2-4h8"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            <circle cx="20" cy="20" r="2" fill={secondary} className="animate-ping" style={{ animationDuration: '2s' }} />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 20. Square with Animated Network
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect x="4" y="4" width="32" height="32" rx="6" fill={primary} />
+            <circle cx="20" cy="20" r="3" fill={secondary} className="animate-ping" style={{ animationDuration: '3s' }} />
+            <path
+              d="M10 20h20M20 10v20"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeDasharray="2"
+              className="animate-pulse"
+            />
+            <circle cx="12" cy="12" r="1.5" fill="white" />
+            <circle cx="28" cy="12" r="1.5" fill="white" />
+            <circle cx="12" cy="28" r="1.5" fill="white" />
+            <circle cx="28" cy="28" r="1.5" fill="white" />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY: ANIMATED LETTERFORMS
+  const animatedLetterforms = [
+    // 1. Pulsing M with Cross
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M8 32L8 8L14 18L20 8L26 18L32 8L32 32" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+              className="animate-pulse"
+            />
+            <path
+              d="M16 20H24M20 16V24"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="animate-ping"
+              style={{ animationDuration: '2s' }}
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 2. Rotating C with Heartbeat
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M32 12C28 6 18 4 12 10C6 16 8 28 16 32C22 35 30 32 32 28" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+            />
+            <path
+              d="M16 20H24M20 16V24"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 3. Morphing D with Pulse
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M10 8V32H20C28 32 32 20 28 16C24 12 16 8 10 8" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+            />
+            <path
+              d="M15 16C19 14 23 22 27 20"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 4. Glowing E with Waves
+    (id: number) => {
+      const primary = primaryColors[3];
+      const secondary = secondaryColors[3];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M32 8H10V32H32M10 20H28" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+            />
+            <path
+              d="M15 16C19 14 23 22 27 20"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 5. Floating H with Dots
+    (id: number) => {
+      const primary = primaryColors[4];
+      const secondary = secondaryColors[4];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <path 
+              d="M8 8V32M32 8V32M8 20H32" 
+              fill="none" 
+              stroke={primary} 
+              strokeWidth="4" 
+              strokeLinejoin="round" 
+              strokeLinecap="round"
+            />
+            <circle cx="20" cy="20" r="2" fill={secondary} className="animate-ping" />
+            
+            <circle cx="8" cy="8" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '1.8s' }} />
+            <circle cx="32" cy="8" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '1.8s' }} />
+            <circle cx="8" cy="32" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '1.8s' }} />
+            <circle cx="32" cy="32" r="2" fill={secondary} className="animate-bounce" style={{ animationDelay: '0.7s', animationDuration: '1.8s' }} />
+            
+            <path
+              d="M15 14C15 14 18 12 20 14C22 16 25 14 25 14"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '3s' }}
+            />
+            
+            <path
+              d="M15 26C15 26 18 24 20 26C22 28 25 26 25 26"
+              stroke={secondary}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-pulse"
+              style={{ animationDuration: '3s', animationDelay: '1.5s' }}
+            />
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY: ANIMATED LOGO SYMBOLS/BRAND MARKS
+  const animatedSymbols = [
+    // 1. Pulsing Network Nodes
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <circle cx="20" cy="20" r="4" fill={primary} className="animate-pulse" />
+            
+            <circle cx="12" cy="15" r="3" fill={secondary} className="animate-pulse" style={{ animationDelay: '0.3s' }} />
+            <line x1="16" y1="18" x2="13" y2="16" stroke={primary} strokeWidth="0.8" />
+            
+            <circle cx="28" cy="15" r="3" fill={secondary} className="animate-pulse" style={{ animationDelay: '0.6s' }} />
+            <line x1="24" y1="18" x2="26" y2="16" stroke={primary} strokeWidth="0.8" />
+            
+            <circle cx="12" cy="25" r="3" fill={secondary} className="animate-pulse" style={{ animationDelay: '0.9s' }} />
+            <line x1="16" y1="22" x2="13" y2="23" stroke={primary} strokeWidth="0.8" />
+            
+            <circle cx="28" cy="25" r="3" fill={secondary} className="animate-pulse" style={{ animationDelay: '1.2s' }} />
+            <line x1="24" y1="22" x2="26" y2="23" stroke={primary} strokeWidth="0.8" />
+            
+            <text 
+              x="20" 
+              y="21" 
+              fill="white" 
+              fontSize="3" 
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              MC
+            </text>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 2. Medical Heartbeat Symbol
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            <path 
+              d="M5 20 H15 L18 12 L22 28 L25 20 H35" 
+              stroke={primary} 
+              strokeWidth="2" 
+              fill="none" 
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="animate-[heartbeat_2s_ease-in-out_infinite]" 
+            />
+            
+            <circle cx="20" cy="20" r="12" stroke={secondary} strokeWidth="1" fill="none" opacity="0.8" />
+            
+            <style jsx>{`
+              @keyframes heartbeat {
+                0%, 100% { 
+                  stroke-width: 2;
+                  opacity: 1;
+                }
+                50% { 
+                  stroke-width: 3;
+                  opacity: 0.7;
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 3. DNA Double Helix Symbol
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            <path 
+              d="M15 8 C25 15, 15 25, 25 32" 
+              stroke={primary} 
+              strokeWidth="1.5" 
+              fill="none" 
+              className="animate-[dnawave1_5s_linear_infinite]" 
+            />
+            
+            <path 
+              d="M25 8 C15 15, 25 25, 15 32" 
+              stroke={secondary} 
+              strokeWidth="1.5" 
+              fill="none"
+              className="animate-[dnawave2_5s_linear_infinite]" 
+            />
+            
+            {[10, 16, 22, 28].map((y, i) => (
+              <g key={i}>
+                <line x1="15" y1={y} x2="25" y2={y} stroke="#666" strokeWidth="0.8" />
+                <circle cx="15" cy={y} r="1.5" fill={i % 2 === 0 ? primary : secondary} />
+                <circle cx="25" cy={y} r="1.5" fill={i % 2 === 0 ? secondary : primary} />
+              </g>
+            ))}
+            
+            <style jsx>{`
+              @keyframes dnawave1 {
+                0% { transform: translateY(0); }
+                50% { transform: translateY(2px); }
+                100% { transform: translateY(0); }
+              }
+              @keyframes dnawave2 {
+                0% { transform: translateY(0); }
+                50% { transform: translateY(-2px); }
+                100% { transform: translateY(0); }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY: ADVANCED ANIMATED TRANSITIONS
+  const advancedAnimations = [
+    // 1. Morphing Shapes Transition
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            <path 
+              d="M20 10L10 20L20 30L30 20Z" 
+              stroke={primary}
+              strokeWidth="2"
+              fill="none"
+              className="animate-[morphshape_8s_ease-in-out_infinite]"
+            />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="10" 
+              stroke={secondary}
+              strokeWidth="2"
+              fill="none"
+              className="animate-[morphcircle_8s_ease-in-out_infinite]"
+              style={{ opacity: 0 }}
+            />
+            
+            <path 
+              d="M15 15L20 10L25 15L25 25L20 30L15 25Z" 
+              stroke={primary}
+              strokeWidth="2"
+              fill="none"
+              className="animate-[morphhex_8s_ease-in-out_infinite]"
+              style={{ opacity: 0 }}
+            />
+            
+            <style jsx>{`
+              @keyframes morphshape {
+                0%, 33% {
+                  opacity: 1;
+                  d: path('M20 10L10 20L20 30L30 20Z');
+                }
+                38%, 39% {
+                  opacity: 0;
+                }
+                66%, 100% {
+                  opacity: 0;
+                }
+              }
+              @keyframes morphcircle {
+                0%, 28% {
+                  opacity: 0;
+                }
+                33%, 66% {
+                  opacity: 1;
+                }
+                71%, 100% {
+                  opacity: 0;
+                }
+              }
+              @keyframes morphhex {
+                0%, 61% {
+                  opacity: 0;
+                }
+                66%, 100% {
+                  opacity: 1;
+                }
+              }
+            `}</style>
+            
+            <text 
+              x="20" 
+              y="21" 
+              fill="white" 
+              fontSize="4" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              MC
+            </text>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 2. Liquid Motion Transition
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="15" 
+              fill={primary}
+              className="animate-[liquid1_6s_ease-in-out_infinite]"
+            />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="12" 
+              fill={secondary}
+              className="animate-[liquid2_6s_ease-in-out_infinite]"
+            />
+            
+            <path 
+              d="M15 15L25 15M15 25L25 25M15 20H25" 
+              stroke="white" 
+              strokeWidth="2" 
+              strokeLinecap="round"
+              className="animate-[pluslines_6s_ease-in-out_infinite]"
+            />
+            
+            <style jsx>{`
+              @keyframes liquid1 {
+                0% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+                25% {
+                  transform: scale(0.9) translate(2px, 1px);
+                  border-radius: 40% 60% 60% 40%;
+                }
+                50% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+                75% {
+                  transform: scale(0.9) translate(-2px, -1px);
+                  border-radius: 60% 40% 40% 60%;
+                }
+                100% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+              }
+              @keyframes liquid2 {
+                0% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+                25% {
+                  transform: scale(0.95) translate(-2px, -1px);
+                  border-radius: 60% 40% 40% 60%;
+                }
+                50% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+                75% {
+                  transform: scale(0.95) translate(2px, 1px);
+                  border-radius: 40% 60% 60% 40%;
+                }
+                100% {
+                  transform: scale(1) translate(0, 0);
+                  border-radius: 50%;
+                }
+              }
+              @keyframes pluslines {
+                0%, 30% {
+                  opacity: 1;
+                  transform: rotate(0deg);
+                }
+                40% {
+                  opacity: 0;
+                }
+                45% {
+                  opacity: 0;
+                  transform: rotate(45deg);
+                }
+                50%, 80% {
+                  opacity: 1;
+                  transform: rotate(45deg);
+                }
+                90% {
+                  opacity: 0;
+                }
+                95% {
+                  opacity: 0;
+                  transform: rotate(0deg);
+                }
+                100% {
+                  opacity: 1;
+                  transform: rotate(0deg);
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 3. Text Transform Animation
+    (id: number) => {
+      const primary = primaryColors[2];
+      const secondary = secondaryColors[2];
+      
+      return (
+        <div className="logo-option">
+          <div className="logo-number">Logo #{id}</div>
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            <rect width="40" height="40" fill="transparent" />
+            
+            <circle 
+              cx="20" 
+              cy="20" 
+              r="15" 
+              fill={primary}
+              opacity="0.9"
+            />
+            
+            <text 
+              x="20" 
+              y="22" 
+              fill="white" 
+              fontSize="12" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="animate-[textM_9s_ease-in-out_infinite]"
+            >
+              M
+            </text>
+            
+            <text 
+              x="20" 
+              y="22" 
+              fill="white" 
+              fontSize="12" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="animate-[textC_9s_ease-in-out_infinite]"
+              style={{ opacity: 0 }}
+            >
+              C
+            </text>
+            
+            <path 
+              d="M15 15L25 25M15 25L25 15" 
+              stroke={secondary} 
+              strokeWidth="3" 
+              strokeLinecap="round"
+              className="animate-[crossfade_9s_ease-in-out_infinite]"
+              style={{ opacity: 0 }}
+            />
+            
+            <style jsx>{`
+              @keyframes textM {
+                0%, 30% {
+                  opacity: 1;
+                  transform: scale(1);
+                }
+                33%, 63% {
+                  opacity: 0;
+                  transform: scale(0.8);
+                }
+                66%, 96% {
+                  opacity: 0;
+                }
+                97%, 100% {
+                  opacity: 1;
+                  transform: scale(1);
+                }
+              }
+              @keyframes textC {
+                0%, 30% {
+                  opacity: 0;
+                }
+                33%, 63% {
+                  opacity: 1;
+                  transform: scale(1);
+                }
+                66%, 96% {
+                  opacity: 0;
+                  transform: scale(0.8);
+                }
+                97%, 100% {
+                  opacity: 0;
+                }
+              }
+              @keyframes crossfade {
+                0%, 63% {
+                  opacity: 0;
+                }
+                66%, 96% {
+                  opacity: 1;
+                }
+                97%, 100% {
+                  opacity: 0;
+                }
+              }
+            `}</style>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+  ];
+  
+  // CATEGORY: MOTTO-INSPIRED ANIMATED LOGOS
+  const mottoAnimatedLogos = [
+    // 1. Connection Bridge
+    (id: number) => {
+      const primary = primaryColors[0];
+      const secondary = secondaryColors[0];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            {/* Background */}
+            <rect x="2" y="2" width="36" height="36" rx="8" fill={primary} opacity="0.1" />
+            
+            {/* Doctor */}
+            <circle cx="10" cy="16" r="4" fill={primary} className="animate-pulse" />
+            <rect x="8" y="20" width="4" height="6" rx="1" fill={primary} className="animate-pulse" />
+            
+            {/* Patient */}
+            <circle cx="30" cy="16" r="4" fill={secondary} className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <rect x="28" y="20" width="4" height="6" rx="1" fill={secondary} className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+            
+            {/* Connection Bridge Animation */}
+            <path
+              d="M14 18C18 14 22 14 26 18"
+              stroke={primary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="1 2"
+              className="animate-[bridge_3s_ease-in-out_infinite]"
+            />
+            
+            <path
+              d="M14 18C18 22 22 22 26 18"
+              stroke={secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="2 1"
+              className="animate-[bridge2_3s_ease-in-out_infinite]"
+            />
+            
+            {/* Data Points */}
+            <circle cx="16" cy="18" r="1" fill="white" className="animate-ping" style={{ animationDuration: '1.5s' }} />
+            <circle cx="24" cy="18" r="1" fill="white" className="animate-ping" style={{ animationDuration: '1.5s', animationDelay: '0.5s' }} />
+            
+            <text 
+              x="13" 
+              y="32" 
+              fill={primary}
+              fontSize="6" 
+              fontWeight="bold"
+              className="animate-bounce"
+              style={{ animationDuration: '2s' }}
+            >
+              MC
+            </text>
+          </svg>
+          <div className="font-semibold text-xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r" style={{
+              backgroundImage: `linear-gradient(to right, ${primary}, ${secondary})`
+            }}>Med</span>
+            <span>Connect</span>
+          </div>
+        </div>
+      );
+    },
+    
+    // 2. Virtual Consultation Animation
+    (id: number) => {
+      const primary = primaryColors[1];
+      const secondary = secondaryColors[1];
+      
+      return (
+        <div className="logo-option">
+          <svg viewBox="0 0 40 40" className={logoStyle}>
+            {/* Screen Frame */}
+            <rect x="4" y="8" width="32" height="24" rx="2" fill={primary} opacity="0.2" />
+            <rect x="6" y="10" width="28" height="20" rx="1" stroke={primary} strokeWidth="1" fill="none" />
+            
+            {/* Doctor on Screen */}
+            <circle cx="14" cy="17" r="3" fill={primary} className="animate-pulse" />
+            <rect x="12.5" y="20" width="3" height="4" fill={primary} className="animate-pulse" />
+            

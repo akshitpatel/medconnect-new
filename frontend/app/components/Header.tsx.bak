@@ -1,0 +1,285 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { FaUser, FaSignOutAlt, FaCalendarAlt, FaFileMedical, FaPrescriptionBottleAlt, FaBars, FaTimes, FaBell } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
+import Logo from './Logo';
+import NotificationDropdown from './notifications/NotificationDropdown';
+
+export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
+  
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
+  };
+  
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+  
+  // Check if link is active
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
+  
+  return (
+    <header className="bg-white shadow-md sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <Link href="/" className="text-2xl font-bold">
+          <Logo variant="default" />
+        </Link>
+        
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex space-x-6">
+          <Link 
+            href="/doctors" 
+            className={`${isActive('/doctors') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600`}
+          >
+            Find Doctors
+          </Link>
+          <Link 
+            href="/lab-tests" 
+            className={`${isActive('/lab-tests') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600`}
+          >
+            Lab Tests
+          </Link>
+          <Link 
+            href="/pharmacy" 
+            className={`${isActive('/pharmacy') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600`}
+          >
+            Medicines
+          </Link>
+          <Link 
+            href="/emergency" 
+            className={`${isActive('/emergency') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600`}
+          >
+            Emergency
+          </Link>
+        </nav>
+        
+        {/* Authentication / User Profile */}
+        <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated && user ? (
+            <>
+              {/* Notification Dropdown */}
+              <NotificationDropdown className="mr-2" />
+              
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-teal-600 focus:outline-none"
+                >
+                  {user.profilePicture ? (
+                    <img 
+                      src={user.profilePicture} 
+                      alt={user.fullName} 
+                      className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center">
+                      <FaUser />
+                    </div>
+                  )}
+                  <span>{user.fullName.split(' ')[0]}</span>
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <Link
+                      href="/dashboard"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaUser className="mr-2" /> Dashboard
+                    </Link>
+                    <Link
+                      href="/appointments"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaCalendarAlt className="mr-2" /> Appointments
+                    </Link>
+                    <Link
+                      href="/medical-records"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaFileMedical className="mr-2" /> Medical Records
+                    </Link>
+                    <Link
+                      href="/prescriptions"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaPrescriptionBottleAlt className="mr-2" /> Prescriptions
+                    </Link>
+                    <Link
+                      href="/notifications"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaBell className="mr-2" /> Notifications
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                    >
+                      <FaSignOutAlt className="mr-2" /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" className="text-teal-700 hover:text-teal-900">
+                Sign In
+              </Link>
+              <Link href="/auth/signup" className="btn-primary">
+                Sign Up
+              </Link>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden text-gray-700 focus:outline-none"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+        </button>
+      </div>
+      
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t border-gray-100 py-2">
+          <div className="container mx-auto px-4">
+            <nav className="flex flex-col space-y-3 py-3">
+              <Link 
+                href="/doctors" 
+                className={`${isActive('/doctors') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600 py-2`}
+                onClick={closeMenu}
+              >
+                Find Doctors
+              </Link>
+              <Link 
+                href="/lab-tests" 
+                className={`${isActive('/lab-tests') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600 py-2`}
+                onClick={closeMenu}
+              >
+                Lab Tests
+              </Link>
+              <Link 
+                href="/pharmacy" 
+                className={`${isActive('/pharmacy') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600 py-2`}
+                onClick={closeMenu}
+              >
+                Medicines
+              </Link>
+              <Link 
+                href="/emergency" 
+                className={`${isActive('/emergency') ? 'text-teal-600 font-medium' : 'text-gray-700'} hover:text-teal-600 py-2`}
+                onClick={closeMenu}
+              >
+                Emergency
+              </Link>
+              
+              <div className="border-t border-gray-100 pt-3">
+                {isAuthenticated && user ? (
+                  <>
+                    <div className="flex items-center space-x-2 mb-3">
+                      {user.profilePicture ? (
+                        <img 
+                          src={user.profilePicture} 
+                          alt={user.fullName} 
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center">
+                          <FaUser />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/dashboard"
+                      className="block py-2 text-gray-700 hover:text-teal-600 flex items-center"
+                      onClick={closeMenu}
+                    >
+                      <FaUser className="mr-2" /> Dashboard
+                    </Link>
+                    <Link
+                      href="/appointments"
+                      className="block py-2 text-gray-700 hover:text-teal-600 flex items-center"
+                      onClick={closeMenu}
+                    >
+                      <FaCalendarAlt className="mr-2" /> Appointments
+                    </Link>
+                    <Link
+                      href="/medical-records"
+                      className="block py-2 text-gray-700 hover:text-teal-600 flex items-center"
+                      onClick={closeMenu}
+                    >
+                      <FaFileMedical className="mr-2" /> Medical Records
+                    </Link>
+                    <Link
+                      href="/prescriptions"
+                      className="block py-2 text-gray-700 hover:text-teal-600 flex items-center"
+                      onClick={closeMenu}
+                    >
+                      <FaPrescriptionBottleAlt className="mr-2" /> Prescriptions
+                    </Link>
+                    <Link
+                      href="/notifications"
+                      className="block py-2 text-gray-700 hover:text-teal-600 flex items-center"
+                      onClick={closeMenu}
+                    >
+                      <FaBell className="mr-2" /> Notifications
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left py-2 text-red-600 hover:text-red-800 flex items-center"
+                    >
+                      <FaSignOutAlt className="mr-2" /> Sign out
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col space-y-3">
+                    <Link 
+                      href="/auth/login" 
+                      className="text-teal-700 hover:text-teal-900 py-2"
+                      onClick={closeMenu}
+                    >
+                      Sign In
+                    </Link>
+                    <Link 
+                      href="/auth/signup" 
+                      className="btn-primary inline-block text-center"
+                      onClick={closeMenu}
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+} 

@@ -1,0 +1,13 @@
+{
+  "name": "medconnect-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for MedConnect",
+  "main": "index.js",
+  "scripts": {
+    "test-symptom-data": "node test-symptom-data.js"
+  },
+  "dependencies": {
+    "mongodb": "^5.0.0",
+    "dotenv": "^16.0.0"
+  }
+} 

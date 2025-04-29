@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  action: MyString
+  resource_type: MyString
+  resource_id: 1
+  details: 
+  ip_address: MyString
+  severity: 1
+  status: 1
+
+two:
+  user: two
+  action: MyString
+  resource_type: MyString
+  resource_id: 1
+  details: 
+  ip_address: MyString
+  severity: 1
+  status: 1

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnect Gemini 2.0 Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>MedConnect Gemini 2.0 Flash Test</h1>
+    
+    <div class="container">
+        <h2>Ask Gemini a Health Question</h2>
+        <textarea id="prompt" placeholder="Type your health question here...">What are some common symptoms of diabetes?</textarea>
+        <button id="submit">Get Answer</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Getting response from Gemini AI...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <h3>Response</h3>
+            <pre id="response"></pre>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_KEY = 'AIzaSyCrU95g64dkZ16WP9-sYlJPxdH38u0ej9A';
+            const MODEL = 'gemini-2.0-flash-exp';
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+            
+            const promptTextarea = document.getElementById('prompt');
+            const submitButton = document.getElementById('submit');
+            const responseElement = document.getElementById('response');
+            const loadingElement = document.getElementById('loading');
+            
+            submitButton.addEventListener('click', async () => {
+                const promptText = promptTextarea.value;
+                if (!promptText.trim()) {
+                    responseElement.textContent = 'Please enter a question';
+                    return;
+                }
+                
+                try {
+                    // Show loading indicator
+                    loadingElement.style.display = 'block';
+                    responseElement.textContent = '';
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: `You are a health assistant. Provide helpful, accurate, and easy-to-understand information about health topics. For questions about specific medical conditions, always recommend consulting a healthcare professional for personalized advice.
+
+Question: ${promptText}`
+                                }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.4,
+                                topK: 32,
+                                topP: 0.95,
+                                maxOutputTokens: 1024,
+                            }
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    console.log('Gemini API Response:', data);
+                    
+                    if (data.candidates && data.candidates.length > 0 && 
+                        data.candidates[0].content && 
+                        data.candidates[0].content.parts && 
+                        data.candidates[0].content.parts.length > 0) {
+                        responseElement.textContent = data.candidates[0].content.parts[0].text;
+                    } else if (data.error) {
+                        responseElement.textContent = `Error: ${data.error.message || JSON.stringify(data.error)}`;
+                    } else {
+                        responseElement.textContent = 'Received an unexpected response format from the API.';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseElement.textContent = `Error: ${error.message || error}`;
+                } finally {
+                    // Hide loading indicator
+                    loadingElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
