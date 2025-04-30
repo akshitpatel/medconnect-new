@@ -119,17 +119,24 @@ module Api
         def apply_filters(providers)
           filtered = providers
           
+          # Make sure we're joining provider_profile for all provider-specific filters
+          needs_join = [:specialization, :verified, :provider_type].any? { |key| params[key].present? }
+          filtered = filtered.joins(:provider_profile) if needs_join && !filtered.joins_values.include?(:provider_profile)
+          
+          # Filter by provider type
+          if params[:provider_type].present?
+            filtered = filtered.where(provider_profiles: { provider_type: params[:provider_type] })
+          end
+          
           # Filter by specialization
           if params[:specialization].present?
-            filtered = filtered.joins(:provider_profile)
-                              .where("provider_profiles.specialization ILIKE ?", "%#{params[:specialization]}%")
+            filtered = filtered.where("provider_profiles.specialization ILIKE ?", "%#{params[:specialization]}%")
           end
           
           # Filter by verification status
           if params[:verified].present?
             verified = params[:verified] == 'true' || params[:verified] == '1'
-            filtered = filtered.joins(:provider_profile)
-                              .where(provider_profiles: { verified: verified })
+            filtered = filtered.where(provider_profiles: { verified: verified })
           end
           
           # Filter by location (assuming address field in User model)
@@ -174,10 +181,11 @@ module Api
         def provider_to_json(provider, include_details: false)
           profile = provider.provider_profile
           
+          # Base provider information
           json = {
             id: provider.id,
             name: provider.full_name,
-            type: 'doctor', # Default to doctor, could be expanded in the future
+            type: profile&.provider_type || 'doctor', # Use the provider type from profile or default to doctor
             specialty: profile&.specialization,
             location: provider.address,
             rating: calculate_rating(provider),
@@ -189,9 +197,32 @@ module Api
             photo: profile&.profile_image_url
           }
           
+          # Add type-specific fields
+          if profile.present?
+            case profile.provider_type
+            when 'hospital', 'clinic'
+              json[:facility_details] = profile.facility_details || {}
+              json[:departments] = profile.facility_details&.dig('departments') || []
+              json[:emergency_services] = profile.facility_details&.dig('emergency_services') || false
+            when 'lab', 'diagnostic', 'imaging'
+              json[:equipment] = profile.equipment || []
+              json[:testing_services] = profile.facility_details&.dig('services') || []
+            when 'pharmacy'
+              json[:delivery_available] = profile.facility_details&.dig('delivery_available') || false
+              json[:operating_hours] = profile.operating_hours || {}
+            when 'insurance'
+              json[:insurance_plans] = profile.facility_details&.dig('insurance_plans') || []
+              json[:coverage_area] = profile.facility_details&.dig('coverage_area') || ''
+            when 'homeservice'
+              json[:service_area] = profile.facility_details&.dig('service_area') || ''
+              json[:services] = profile.facility_details&.dig('services') || []
+            end
+          end
+          
+          # Additional details for detailed view
           if include_details
-            # Add more details for the detailed view
-            json.merge!({
+            # Common detailed fields for all provider types
+            details = {
               bio: profile&.bio,
               languages: profile&.languages || [],
               license_number: profile&.license_number,
@@ -200,10 +231,28 @@ module Api
               services: profile&.services || [],
               consultation_fee: profile&.consultation_fee,
               availability: profile&.availability || {},
-              appointments_count: provider.appointments_as_provider.count,
-              patients_count: provider.appointments_as_provider.select(:patient_id).distinct.count,
+              appointments_count: provider.appointments_as_provider&.count || 0,
+              patients_count: provider.appointments_as_provider&.select(:patient_id)&.distinct&.count || 0,
               verification_date: profile&.verification_date
-            })
+            }
+            
+            # Add type-specific detailed fields
+            if profile.present?
+              case profile.provider_type
+              when 'hospital', 'clinic'
+                details[:accreditations] = profile.facility_details&.dig('accreditations') || []
+                details[:bed_capacity] = profile.facility_details&.dig('bed_capacity')
+                details[:facilities] = profile.facility_details&.dig('facilities') || []
+              when 'doctor'
+                details[:hospital_affiliations] = profile.facility_details&.dig('hospital_affiliations') || []
+                details[:accepting_new_patients] = profile.facility_details&.dig('accepting_new_patients') || true
+              when 'lab', 'diagnostic', 'imaging'
+                details[:certifications] = profile.facility_details&.dig('certifications') || []
+                details[:equipment_details] = profile.facility_details&.dig('equipment_details') || []
+              end
+            end
+            
+            json.merge!(details)
           end
           
           json

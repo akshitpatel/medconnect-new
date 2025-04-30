@@ -17,9 +17,7 @@ Rails.application.routes.draw do
       get 'test', to: 'test#index'
       
       # Mock data endpoints
-      namespace :mock do
-        get 'patient_dashboard', to: 'mock#patient_dashboard'
-      end
+      get 'mock/patient_dashboard', to: 'mock#patient_dashboard'
 
       # Auth endpoints
       post 'auth/register', to: 'auth#create'
@@ -32,9 +30,11 @@ Rails.application.routes.draw do
         collection do
           get :profile
           put :profile, to: 'patients#update_profile'
+          post 'profile/photo', to: 'profile_photos#create'
           
           # Patient appointments
           resources :appointments
+          get 'upcoming_appointments', to: 'appointments#upcoming'
           
           # Patient medical records
           resources :records
@@ -70,6 +70,9 @@ Rails.application.routes.draw do
           get :profile
           put :profile, to: 'providers#update_profile'
           
+          # Provider availability management
+          resources :availabilities, controller: 'provider_availabilities', except: [:show]
+          
           # Provider appointments
           resources :appointments, controller: 'provider_appointments'
           
@@ -78,6 +81,10 @@ Rails.application.routes.draw do
           post 'messages/new_conversation', to: 'provider_messages#new_conversation'
         end
       end
+
+      # Routes for accessing provider data without being a provider
+      get 'providers/:provider_id/availabilities', to: 'provider_availabilities#index'
+      get 'providers/:provider_id/available_slots', to: 'provider_availabilities#available_slots'
 
       # Admin panel endpoints
       namespace :admin do
@@ -88,6 +95,16 @@ Rails.application.routes.draw do
         resources :providers do
           member do
             post :verify
+          end
+        end
+        
+        # Unified search endpoint
+        get 'unified_search', to: 'unified_search#index'
+        
+        # Appointment management
+        resources :appointments do
+          collection do
+            get :stats
           end
         end
         
@@ -104,6 +121,11 @@ Rails.application.routes.draw do
         # Metrics and audit logs
         get :metrics
         resources :audit_logs, only: [:index]
+        
+        # Dashboard data
+        get 'dashboard/user-stats', to: 'dashboard#user_stats'
+        get 'dashboard/system-health', to: 'dashboard#system_health'
+        get 'dashboard/activity', to: 'dashboard#activity'
       end
 
       # Search & Directory

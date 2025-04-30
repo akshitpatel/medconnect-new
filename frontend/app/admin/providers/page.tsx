@@ -33,11 +33,12 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/Card';
+import { adminAPI } from '@/app/services/api';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Avatar } from '@/app/components/ui/Avatar';
 
-type ProviderType = 'doctor' | 'pharmacy' | 'lab';
+type ProviderType = 'doctor' | 'hospital' | 'pharmacy' | 'lab' | 'diagnostic' | 'imaging' | 'insurance' | 'homeservice';
 type ProviderStatus = 'active' | 'pending' | 'suspended' | 'inactive';
 
 interface Provider {
@@ -83,134 +84,97 @@ export default function ProviderManagement() {
   const [selectedTab, setSelectedTab] = useState<string>('all');
   
   useEffect(() => {
-    // Mock data
-    const mockProviders: Provider[] = [
-      {
-        id: 'doc1',
-        name: 'Dr. Sarah Johnson',
-        type: 'doctor',
-        specialty: 'Cardiology',
-        location: 'New York, NY',
-        rating: 4.8,
-        contactEmail: 'sarah.johnson@example.com',
-        contactPhone: '+1 (555) 123-4567',
-        status: 'active',
-        verified: true,
-        createdAt: new Date(2022, 1, 15),
-        services: ['Consultation', 'ECG', 'Stress Test'],
-      },
-      {
-        id: 'doc2',
-        name: 'Dr. Michael Chen',
-        type: 'doctor',
-        specialty: 'Neurology',
-        location: 'San Francisco, CA',
-        rating: 4.7,
-        contactEmail: 'michael.chen@example.com',
-        contactPhone: '+1 (555) 987-6543',
-        status: 'active',
-        verified: true,
-        createdAt: new Date(2022, 3, 10),
-        services: ['Consultation', 'EEG', 'Nerve Conduction Studies'],
-      },
-      {
-        id: 'phrm1',
-        name: 'MedFirst Pharmacy',
-        type: 'pharmacy',
-        location: 'Chicago, IL',
-        rating: 4.5,
-        contactEmail: 'info@medfirstpharmacy.com',
-        contactPhone: '+1 (555) 456-7890',
-        status: 'active',
-        verified: true,
-        createdAt: new Date(2021, 11, 5),
-        services: ['Prescription Filling', 'Medication Delivery', 'Vaccination'],
-      },
-      {
-        id: 'phrm2',
-        name: 'Community Health Pharmacy',
-        type: 'pharmacy',
-        location: 'Austin, TX',
-        rating: 4.2,
-        contactEmail: 'contact@communityhealthrx.com',
-        contactPhone: '+1 (555) 234-5678',
-        status: 'active',
-        verified: false,
-        createdAt: new Date(2022, 6, 20),
-        services: ['Prescription Filling', 'Health Screening', 'Medication Therapy Management'],
-      },
-      {
-        id: 'lab1',
-        name: 'NexGen Diagnostics',
-        type: 'lab',
-        location: 'Boston, MA',
-        rating: 4.6,
-        contactEmail: 'info@nexgendiagnostics.com',
-        contactPhone: '+1 (555) 876-5432',
-        status: 'active',
-        verified: true,
-        createdAt: new Date(2022, 2, 15),
-        services: ['Blood Tests', 'Genetic Testing', 'Covid Testing'],
-      },
-      {
-        id: 'lab2',
-        name: 'FastTrack Labs',
-        type: 'lab',
-        location: 'Miami, FL',
-        rating: 3.9,
-        contactEmail: 'service@fasttracklab.com',
-        contactPhone: '+1 (555) 321-7654',
-        status: 'pending',
-        verified: false,
-        createdAt: new Date(2023, 1, 5),
-        services: ['Blood Tests', 'Urine Analysis', 'Home Collection'],
-      },
-      {
-        id: 'doc3',
-        name: 'Dr. Emily Rodriguez',
-        type: 'doctor',
-        specialty: 'Pediatrics',
-        location: 'Seattle, WA',
-        rating: 4.9,
-        contactEmail: 'emily.rodriguez@example.com',
-        contactPhone: '+1 (555) 678-9012',
-        status: 'suspended',
-        verified: true,
-        createdAt: new Date(2022, 5, 10),
-        services: ['Well-child visits', 'Vaccinations', 'Developmental assessments'],
-      },
-      {
-        id: 'lab3',
-        name: 'CityHealth Diagnostics',
-        type: 'lab',
-        location: 'Denver, CO',
-        rating: 4.3,
-        contactEmail: 'contact@cityhealthdiag.com',
-        contactPhone: '+1 (555) 789-0123',
-        status: 'inactive',
-        verified: true,
-        createdAt: new Date(2021, 9, 12),
-        services: ['Blood Tests', 'Imaging', 'Cardiac Stress Testing'],
-      },
-    ];
-    
-    const stats: ProviderStats = {
-      total: mockProviders.length,
-      active: mockProviders.filter(p => p.status === 'active').length,
-      verified: mockProviders.filter(p => p.verified).length,
-      byType: {
-        doctor: mockProviders.filter(p => p.type === 'doctor').length,
-        pharmacy: mockProviders.filter(p => p.type === 'pharmacy').length,
-        lab: mockProviders.filter(p => p.type === 'lab').length
+    // Fetch providers from API
+    const fetchProviders = async () => {
+      setLoading(true);
+      try {
+        console.log('Fetching providers from backend API...');
+        const response = await adminAPI.getProviders({
+          verified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
+          // Translate the status filter to what the API expects
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          provider_type: typeFilter === 'all' ? undefined : typeFilter
+        });
+
+        console.log('Successfully retrieved providers data');
+        
+        if (response?.data?.data?.providers) {
+          // Format providers from API to match our Provider interface
+          const formattedProviders = response.data.data.providers.map((apiProvider: any) => ({
+            id: apiProvider.id,
+            name: apiProvider.name,
+            type: apiProvider.type || apiProvider.provider_type || 'doctor',
+            specialty: apiProvider.specialty,
+            location: apiProvider.location || apiProvider.address || '',
+            rating: apiProvider.rating || 4.0,
+            contactEmail: apiProvider.contact_email || apiProvider.email || '',
+            contactPhone: apiProvider.contact_phone || apiProvider.phone || '',
+            status: apiProvider.status || 'active',
+            verified: apiProvider.verified || false,
+            createdAt: apiProvider.created_at ? new Date(apiProvider.created_at) : new Date(),
+            photo: apiProvider.photo,
+            services: apiProvider.services || []
+          }));
+          
+          setProviderList(formattedProviders);
+          
+          // Calculate stats from the providers
+          const stats: ProviderStats = {
+            total: formattedProviders.length,
+            active: formattedProviders.filter((p: Provider) => p.status === 'active').length,
+            verified: formattedProviders.filter((p: Provider) => p.verified).length,
+            byType: {
+              doctor: formattedProviders.filter((p: Provider) => p.type === 'doctor').length,
+              pharmacy: formattedProviders.filter((p: Provider) => p.type === 'pharmacy').length,
+              lab: formattedProviders.filter((p: Provider) => p.type === 'lab').length
+            }
+          };
+          
+          setProviderStats(stats);
+        } else {
+          console.warn('No providers returned from API, using empty array');
+          setProviderList([]);
+          setProviderStats({
+            total: 0,
+            active: 0,
+            verified: 0,
+            byType: {
+              doctor: 0,
+              pharmacy: 0,
+              lab: 0
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch providers:', err);
+        // Fallback to empty arrays if API fails
+        setProviderList([]);
+        setProviderStats({
+          total: 0,
+          active: 0,
+          verified: 0,
+          byType: {
+            doctor: 0,
+            pharmacy: 0,
+            lab: 0
+          }
+        });
+      } finally {
+        setLoading(false);
       }
     };
     
-    setTimeout(() => {
-      setProviderList(mockProviders);
-      setProviderStats(stats);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    fetchProviders();
+    
+    // Set up refresh interval (5 minutes)
+    const refreshInterval = setInterval(() => {
+      console.log('Refreshing providers data...');
+      fetchProviders();
+    }, 5 * 60 * 1000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(refreshInterval);
+  }, [typeFilter, statusFilter, verifiedFilter]); // Re-fetch when filters change
 
   // Toggle provider dropdown
   const toggleDropdown = (providerId: string) => {
@@ -287,8 +251,13 @@ export default function ProviderManagement() {
     const matchesTab = 
       selectedTab === 'all' || 
       (selectedTab === 'doctors' && provider.type === 'doctor') || 
+      (selectedTab === 'hospitals' && provider.type === 'hospital') ||
       (selectedTab === 'pharmacies' && provider.type === 'pharmacy') || 
-      (selectedTab === 'labs' && provider.type === 'lab');
+      (selectedTab === 'labs' && provider.type === 'lab') ||
+      (selectedTab === 'diagnostic' && provider.type === 'diagnostic') ||
+      (selectedTab === 'imaging' && provider.type === 'imaging') ||
+      (selectedTab === 'insurance' && provider.type === 'insurance') ||
+      (selectedTab === 'homeservice' && provider.type === 'homeservice');
     
     return matchesSearch && matchesType && matchesStatus && matchesVerified && matchesTab;
   });
@@ -318,11 +287,16 @@ export default function ProviderManagement() {
   };
   
   const ProviderTypeBadge = ({ type }: { type: ProviderType }) => {
-    const typeData = {
+    const typeData: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
       doctor: {
         label: 'Doctor',
         className: 'bg-green-50 text-green-700 border-green-200',
         icon: <Stethoscope className="h-3 w-3 mr-1" />
+      },
+      hospital: {
+        label: 'Hospital',
+        className: 'bg-teal-50 text-teal-700 border-teal-200',
+        icon: <Building className="h-3 w-3 mr-1" />
       },
       pharmacy: {
         label: 'Pharmacy',
@@ -333,6 +307,26 @@ export default function ProviderManagement() {
         label: 'Lab',
         className: 'bg-purple-50 text-purple-700 border-purple-200',
         icon: <TestTube className="h-3 w-3 mr-1" />
+      },
+      diagnostic: {
+        label: 'Diagnostic',
+        className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        icon: <TestTube className="h-3 w-3 mr-1" />
+      },
+      imaging: {
+        label: 'Imaging',
+        className: 'bg-violet-50 text-violet-700 border-violet-200',
+        icon: <TestTube className="h-3 w-3 mr-1" />
+      },
+      insurance: {
+        label: 'Insurance',
+        className: 'bg-sky-50 text-sky-700 border-sky-200',
+        icon: <Shield className="h-3 w-3 mr-1" />
+      },
+      homeservice: {
+        label: 'Home Service',
+        className: 'bg-rose-50 text-rose-700 border-rose-200',
+        icon: <Users className="h-3 w-3 mr-1" />
       }
     };
     
