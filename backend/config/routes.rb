@@ -126,6 +126,9 @@ Rails.application.routes.draw do
         get 'dashboard/user-stats', to: 'dashboard#user_stats'
         get 'dashboard/system-health', to: 'dashboard#system_health'
         get 'dashboard/activity', to: 'dashboard#activity'
+        get 'dashboard/analytics', to: 'dashboard#analytics'
+        get 'dashboard/predictive-analytics', to: 'dashboard#predictive_analytics'
+        get 'dashboard/user-engagement', to: 'dashboard#user_engagement'
       end
 
       # Search & Directory

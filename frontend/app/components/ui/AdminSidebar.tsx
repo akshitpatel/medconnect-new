@@ -22,7 +22,15 @@ import {
   ChevronRight,
   LogOut,
   Sparkles,
-  X
+  X,
+  Hospital,
+  SearchCheck,
+  Microscope,
+  Scan,
+  Store,
+  Shield,
+  HeartPulse,
+  Home
 } from 'lucide-react';
 import AnimatedLogo from './AnimatedLogo';
 import SVGLogo from './SVGLogo';
@@ -70,6 +78,11 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
+      title: 'Unified Search',
+      path: '/admin/unified-search',
+      icon: <SearchCheck className="h-5 w-5" />,
+    },
+    {
       title: 'Users',
       path: '/admin/users',
       icon: <Users className="h-5 w-5" />,
@@ -80,9 +93,9 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
           icon: <Users className="h-4 w-4" />,
         },
         {
-          title: 'Providers',
-          path: '/admin/users/providers',
-          icon: <Stethoscope className="h-4 w-4" />,
+          title: 'Healthcare Staff',
+          path: '/admin/users/healthcare-staff',
+          icon: <HeartPulse className="h-4 w-4" />,
         },
         {
           title: 'Administrators',
@@ -92,14 +105,34 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
       ],
     },
     {
-      title: 'Providers',
+      title: 'Provider Entities',
       path: '/admin/providers',
       icon: <Building className="h-5 w-5" />,
       submenu: [
         {
+          title: 'Hospitals & Clinics',
+          path: '/admin/providers/hospitals',
+          icon: <Hospital className="h-4 w-4" />,
+        },
+        {
           title: 'Doctors',
           path: '/admin/providers/doctors',
           icon: <Stethoscope className="h-4 w-4" />,
+        },
+        {
+          title: 'Diagnostic Centers',
+          path: '/admin/providers/diagnostic',
+          icon: <Microscope className="h-4 w-4" />,
+        },
+        {
+          title: 'Labs',
+          path: '/admin/providers/labs',
+          icon: <TestTube className="h-4 w-4" />,
+        },
+        {
+          title: 'MRI & CT Centers',
+          path: '/admin/providers/imaging',
+          icon: <Scan className="h-4 w-4" />,
         },
         {
           title: 'Pharmacies',
@@ -107,9 +140,14 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
           icon: <Pill className="h-4 w-4" />,
         },
         {
-          title: 'Labs',
-          path: '/admin/providers/labs',
-          icon: <TestTube className="h-4 w-4" />,
+          title: 'Insurance Providers',
+          path: '/admin/providers/insurance',
+          icon: <Shield className="h-4 w-4" />,
+        },
+        {
+          title: 'Home Services',
+          path: '/admin/providers/home-services',
+          icon: <Home className="h-4 w-4" />,
         },
       ],
     },
@@ -225,7 +263,8 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
                       openMenus[item.title.toLowerCase()] ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {item.submenu.map((subitem) => (
+                    <ul className="space-y-1">
+                      {item.submenu.map((subitem) => (
                       <li key={subitem.title}>
                         <Link
                           href={subitem.path}
@@ -247,6 +286,7 @@ export default function AdminSidebar({ isOpen = true, onToggle }: AdminSidebarPr
                         </Link>
                       </li>
                     ))}
+                    </ul>
                   </div>
                 </div>
               ) : (

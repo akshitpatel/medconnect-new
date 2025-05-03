@@ -15,6 +15,13 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
+  # Enable static file serving from the /public folder with proper headers
+  config.public_file_server.enabled = true
+  config.public_file_server.headers = {
+    'Access-Control-Allow-Origin' => '*',
+    'Cache-Control' => 'public, max-age=3600'
+  }
+
   # Enable/disable Action Controller caching. By default Action Controller caching is disabled.
   # Run rails dev:cache to toggle Action Controller caching.
   if Rails.root.join("tmp/caching-dev.txt").exist?

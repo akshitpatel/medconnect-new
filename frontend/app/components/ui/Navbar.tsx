@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/app/lib/utils';
 import { useTheme } from '@/app/contexts/ThemeContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import Logo from '@/app/components/Logo';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,6 +58,7 @@ const navItems = [
 
 export function Navbar() {
   const { isDarkMode } = useTheme();
+  const { user, logout, isAuthenticated } = useAuth();
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -199,7 +201,8 @@ export function Navbar() {
               onClick={toggleUserMenu}
             >
               <ProfileAvatar 
-                initials="JD"
+                src={user?.profilePicture || null}
+                initials={user?.fullName ? user.fullName.split(' ').map(n => n[0]).join('') : 'U'}
                 size="sm"
                 role="patient"
                 className="cursor-pointer"
@@ -280,8 +283,8 @@ export function Navbar() {
           >
             <div className="py-1">
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-900")}>John Doe</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">patient@medconnect.com</p>
+                <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{user?.fullName || 'User'}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@example.com'}</p>
               </div>
               <Link href="/patient/profile" legacyBehavior>
                 <a className={cn(
@@ -303,16 +306,19 @@ export function Navbar() {
                   Settings
                 </a>
               </Link>
-              <Link href="#" legacyBehavior>
-                <a className={cn(
-                  "block px-4 py-2 text-sm",
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  logout();
+                }}
+                className={cn(
+                  "block w-full text-left px-4 py-2 text-sm",
                   isDarkMode 
                     ? "text-gray-300 hover:bg-gray-700 hover:text-white" 
                     : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
                   Sign out
-                </a>
-                      </Link>
+                </button>
             </div>
                     </motion.div>
         )}

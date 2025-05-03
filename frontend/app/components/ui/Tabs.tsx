@@ -1,12 +1,14 @@
+'use client';
+
 import React from 'react';
-import { cn } from '@/app/utils/cn';
+import { cn } from '@/app/lib/utils';
 
 export interface Tab {
   id: string;
   label: string;
 }
 
-interface TabsProps {
+export interface TabsProps {
   tabs: Tab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
@@ -16,7 +18,7 @@ interface TabsProps {
 /**
  * Tabs component for creating a tabbed interface
  */
-export default function Tabs({ tabs, activeTab, onTabChange, className }: TabsProps) {
+export function Tabs({ tabs, activeTab, onTabChange, className }: TabsProps) {
   return (
     <div className={cn("border-b border-gray-200", className)}>
       <nav className="-mb-px flex space-x-8 overflow-x-auto">
@@ -37,4 +39,7 @@ export default function Tabs({ tabs, activeTab, onTabChange, className }: TabsPr
       </nav>
     </div>
   );
-} 
+}
+
+// Also export as default for backward compatibility
+export default Tabs;

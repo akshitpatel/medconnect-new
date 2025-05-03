@@ -25,9 +25,11 @@ module Api
       end
 
       def login
-        user = User.find_by(email: params[:email])
+        # Check if the parameters are nested under a user object (Rails convention)
+        auth_params = params[:user] || params[:auth]&.[](:user) || params
+        user = User.find_by(email: auth_params[:email])
         
-        if user&.valid_password?(params[:password])
+        if user&.valid_password?(auth_params[:password])
           sign_in(user)
           render json: {
             success: true,

@@ -2,7 +2,26 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['randomuser.me', 'via.placeholder.com', 'images.unsplash.com']
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'randomuser.me',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ]
   },
   experimental: {
     serverComponentsExternalPackages: []

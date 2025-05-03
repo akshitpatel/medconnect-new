@@ -14,6 +14,7 @@ import ErrorBoundary from '@/app/components/ErrorBoundary';
 import { ProfileSkeletonLoader } from '@/app/components/ui/ProfileSkeletonLoader';
 import { format, parseISO } from 'date-fns';
 import EditProfileModal from '@/app/components/patient/EditProfileModal';
+import ProfilePhotoUploader from '@/app/components/ui/ProfilePhotoUploader';
 
 interface HealthRecord {
   type: string;
@@ -30,7 +31,7 @@ interface Insurance {
 }
 
 export default function PatientProfilePage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, updateUserProfile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export default function PatientProfilePage() {
       phone: '',
       address: '',
       passportNumber: '',
+      profilePicture: null as string | null,
     },
     emergencyContact: {
       name: '',
@@ -175,6 +177,9 @@ export default function PatientProfilePage() {
             passportNumber: safeGet(apiProfile, 'personal_info.passport_number') || safeGet(apiProfile, 'personalInfo.passportNumber') || 
                          safeGet(apiProfile, 'passport_number') || safeGet(apiProfile, 'passportNumber') || 
                          safeGet(apiProfile, 'passport') || '',
+            profilePicture: safeGet(apiProfile, 'personal_info.profile_picture') || safeGet(apiProfile, 'personal_info.profilePicture') || 
+                          safeGet(apiProfile, 'personalInfo.profilePicture') || safeGet(apiProfile, 'profile_picture') || 
+                          safeGet(apiProfile, 'profilePicture') || safeGet(apiProfile, 'avatar') || null,
           },
           emergencyContact: {
             name: safeGet(apiProfile, 'emergency_contact.name') || safeGet(apiProfile, 'emergencyContact.name') || '',
@@ -263,9 +268,33 @@ export default function PatientProfilePage() {
 
   // Handle profile update from edit modal
   const handleProfileUpdate = (updatedProfile: any) => {
-    setProfile(updatedProfile);
+    // Ensure all required fields are present to fix type errors
+    const completeUpdatedProfile = {
+      ...profile, // Start with current profile to maintain shape
+      personalInfo: {
+        ...profile.personalInfo,
+        ...updatedProfile.personalInfo,
+      },
+      emergencyContact: {
+        ...profile.emergencyContact,
+        ...updatedProfile.emergencyContact,
+      },
+      insurance: {
+        ...profile.insurance,
+        ...updatedProfile.insurance,
+      },
+      healthMetrics: {
+        ...profile.healthMetrics,
+        ...updatedProfile.healthMetrics,
+      },
+      healthHistory: updatedProfile.healthHistory || profile.healthHistory,
+      medications: updatedProfile.medications || profile.medications
+    };
+    
+    // Handle updating the state with the new profile data
+    setProfile(completeUpdatedProfile);
   };
-
+  
   // Get appropriate icon for health record
   const getHealthRecordIcon = (type: string) => {
     switch (type) {
@@ -333,14 +362,45 @@ export default function PatientProfilePage() {
         
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  Health Profile
-                </h1>
-                <p className="text-gray-600 dark:text-gray-300 text-lg">
-                  Manage your personal health information and records
-                </p>
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                {/* Profile Photo Uploader Component */}
+                <div className="flex flex-col items-center">
+                  {loading ? (
+                    <div className="rounded-full bg-gray-200 dark:bg-gray-700 h-24 w-24 animate-pulse"></div>
+                  ) : (
+                    <ProfilePhotoUploader
+                      currentPhotoUrl={user?.profilePicture || profile.personalInfo.profilePicture}
+                      size="lg"
+                      onPhotoUpdate={(newPhotoUrl) => {
+                        // Update local profile state
+                        setProfile({
+                          ...profile,
+                          personalInfo: {
+                            ...profile.personalInfo,
+                            profilePicture: newPhotoUrl
+                          }
+                        });
+                        
+                        // Also update auth context if user exists
+                        if (updateUserProfile && user) {
+                          updateUserProfile({
+                            ...user,
+                            profilePicture: newPhotoUrl
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    Health Profile
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-300 text-lg">
+                    Manage your personal health information and records
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <button 
@@ -571,8 +631,7 @@ export default function PatientProfilePage() {
                       </Card>
                     </motion.div>
                   )}
-                  
-                  {/* Insurance Tab */}
+                                    {/* Insurance Tab */}
                   {activeTab === 'insurance' && (
                     <motion.div
                       key="insurance"
@@ -585,37 +644,35 @@ export default function PatientProfilePage() {
                           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Insurance Information</h2>
                           
                           <div className="space-y-6">
-                            {profile.insurance.map((insurance, index) => (
-                              <div key={index} className={`p-5 rounded-lg border ${insurance.primary ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                  <div>
-                                    <div className="flex items-center mb-2">
-                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{insurance.provider}</h3>
-                                      {insurance.primary && (
-                                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                          Primary
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Policy Number</p>
-                                        <p className="text-gray-700 dark:text-gray-300">{insurance.policyNumber}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Group Number</p>
-                                        <p className="text-gray-700 dark:text-gray-300">{insurance.groupNumber}</p>
-                                      </div>
-                                    </div>
+                            <div className={`p-5 rounded-lg border ${profile.insurance.primary ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                  <div className="flex items-center mb-2">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{profile.insurance.provider}</h3>
+                                    {profile.insurance.primary && (
+                                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Primary
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="flex-shrink-0">
-                                    <button className="btn-secondary text-sm py-2">
-                                      View Card
-                                    </button>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Policy Number</p>
+                                      <p className="text-gray-700 dark:text-gray-300">{profile.insurance.policyNumber}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Group Number</p>
+                                      <p className="text-gray-700 dark:text-gray-300">{profile.insurance.groupNumber}</p>
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex-shrink-0">
+                                  <button className="btn-secondary text-sm py-2">
+                                    View Card
+                                  </button>
+                                </div>
                               </div>
-                            ))}
+                            </div>
                           </div>
                           
                           <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200">

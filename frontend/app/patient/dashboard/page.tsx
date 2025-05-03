@@ -257,11 +257,22 @@ const getPriorityStyle = (priority: string, isDark = false) => {
   return style;
 };
 
+// Type guard to validate message arrays
+function isValidMessageArray(arr: any[]): arr is Message[] {
+  return Array.isArray(arr) && arr.every(item => 
+    item && typeof item === 'object' && 
+    'content' in item && typeof item.content === 'string' && 
+    (('sender' in item && typeof item.sender === 'object') || 
+     ('created_at' in item || 'createdAt' in item || 'timestamp' in item))
+  );
+}
+
 // Define interfaces for the data we'll be fetching
 interface PatientProfile {
-  id: string;
-  fullName: string;
-  email: string;
+  // Legacy fields for backward compatibility
+  id?: string;
+  fullName?: string;
+  email?: string;
   phone?: string;
   dateOfBirth?: string;
   bloodType?: string;
@@ -277,6 +288,36 @@ interface PatientProfile {
   };
   allergies?: string[];
   conditions?: string[];
+  
+  // New structure from Rails backend
+  personal_info?: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    date_of_birth: string;
+    gender: string | null;
+    address: string;
+    passport_number: string | null;
+  };
+  emergency_contact?: {
+    name: string;
+    phone: string;
+    relationship: string | null;
+  };
+  insurance?: {
+    primary: boolean;
+    provider: string;
+    group_number: string;
+    policy_number: string;
+  };
+  health_metrics?: {
+    height: string;
+    weight: string;
+    allergies: string[];
+    blood_type: string;
+  };
+  health_history?: any[];
 }
 
 interface Appointment {
@@ -330,8 +371,13 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
-  // Set the actual patient name
-  const patientName = 'Akshit Patel';
+  // Extract patient name from profile or user context for consistent display
+  const patientName = useMemo(() => {
+    if (profile?.personal_info?.name) return profile.personal_info.name;
+    if (profile?.fullName) return profile.fullName;
+    if (user?.fullName) return user.fullName;
+    return 'Patient';
+  }, [profile, user]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -361,12 +407,24 @@ export default function PatientDashboard() {
           console.log('Fetching profile from live API...');
           const profileResponse = await patientAPI.getProfile();
           console.log('Profile response:', profileResponse);
+          // Handle different API response formats that might come from Rails backend or mock API
           if (profileResponse?.data?.success) {
+            // Format 1: {success: true, data: {profile: {...}}}
             setProfile(profileResponse.data.data.profile);
             hasData = true;
             console.log('Profile data loaded successfully');
+          } else if (profileResponse?.data?.profile) {
+            // Format 2: {profile: {...}}
+            setProfile(profileResponse.data.profile);
+            hasData = true;
+            console.log('Profile data loaded successfully (format 2)');
+          } else if (profileResponse?.data) {
+            // Format 3: Direct profile object
+            setProfile(profileResponse.data);
+            hasData = true;
+            console.log('Profile data loaded successfully (format 3)');
           } else {
-            console.warn('Profile API returned unsuccessful response', profileResponse);
+            console.warn('Profile API returned unexpected response format', profileResponse);
           }
         } catch (profileErr: any) {
           console.error('Error fetching profile:', profileErr?.response?.status, profileErr?.message);
@@ -377,12 +435,26 @@ export default function PatientDashboard() {
         try {
           console.log('Fetching appointments from live API...');
           const appointmentsResponse = await patientAPI.getAppointments();
-          if (appointmentsResponse?.data?.success) {
-            setAppointments(appointmentsResponse.data.data.appointments || []);
+          console.log('Rails appointments response:', appointmentsResponse);
+          
+          // Handle different API response formats
+          if (appointmentsResponse?.data?.success && appointmentsResponse.data.data?.appointments) {
+            // Format 1: {success: true, data: {appointments: [...]}}
+            setAppointments(appointmentsResponse.data.data.appointments);
             hasData = true;
             console.log('Appointments data loaded successfully', appointmentsResponse.data.data.appointments);
+          } else if (appointmentsResponse?.data?.appointments) {
+            // Format 2: {appointments: [...]}
+            setAppointments(appointmentsResponse.data.appointments);
+            hasData = true;
+            console.log('Appointments data loaded successfully (format 2)');
+          } else if (Array.isArray(appointmentsResponse?.data)) {
+            // Format 3: Direct array
+            setAppointments(appointmentsResponse.data);
+            hasData = true;
+            console.log('Appointments data loaded successfully (format 3)');
           } else {
-            console.warn('Appointments API returned unsuccessful response');
+            console.warn('Appointments API returned unexpected response format');
           }
         } catch (appointmentsErr: any) {
           console.error('Error fetching appointments:', appointmentsErr?.response?.status, appointmentsErr?.message);
@@ -393,32 +465,93 @@ export default function PatientDashboard() {
         try {
           console.log('Fetching medications from live API...');
           const medicationsResponse = await patientAPI.getMedications();
-          if (medicationsResponse?.data?.success) {
-            setMedications(medicationsResponse.data.data.medications || []);
+          console.log('Rails medications response:', medicationsResponse);
+          
+          // Handle different API response formats, starting with Rails format
+          if (medicationsResponse?.data?.success === true && medicationsResponse.data.data?.medications) {
+            // Rails format: {success: true, data: {medications: [...]}}
+            setMedications(medicationsResponse.data.data.medications);
             hasData = true;
-            console.log('Medications data loaded successfully', medicationsResponse.data.data.medications);
+            console.log('Medications data loaded successfully (Rails format)');
+          } else if (medicationsResponse?.data?.medications) {
+            // Legacy format: {medications: [...]}
+            setMedications(medicationsResponse.data.medications);
+            hasData = true;
+            console.log('Medications data loaded successfully (legacy format)');
+          } else if (Array.isArray(medicationsResponse?.data)) {
+            // Direct array format
+            setMedications(medicationsResponse.data);
+            hasData = true;
+            console.log('Medications data loaded successfully (direct array format)');
           } else {
-            console.warn('Medications API returned unsuccessful response');
+            console.warn('Medications API returned unexpected response format', medicationsResponse);
+            // Try to extract data from other potential formats
+            const data = medicationsResponse?.data;
+            if (data && typeof data === 'object') {
+              // Look for any array property that might contain medications
+              const potentialMedsArrays = Object.values(data).filter(val => Array.isArray(val));
+              if (potentialMedsArrays.length > 0) {
+                // Use the first array found (best guess)
+                setMedications(potentialMedsArrays[0]);
+                hasData = true;
+                console.log('Medications data extracted from unexpected format');
+              }
+            }
           }
-        } catch (medicationsErr: any) {
-          console.error('Error fetching medications:', medicationsErr?.response?.status, medicationsErr?.message);
-          // Continue with other requests
+        } catch (medsErr: any) {
+          console.error('Error fetching medications:', medsErr?.response?.status, medsErr?.message);
+          // Continue with other data types
         }
         
         // Fetch messages
         try {
           console.log('Fetching messages from live API...');
           const messagesResponse = await patientAPI.getMessages();
-          if (messagesResponse?.data?.success) {
-            setMessages(messagesResponse.data.data.messages || messagesResponse.data.data.conversations || []);
+          console.log('Rails messages response:', messagesResponse);
+          
+          // Handle different API response formats, with improved Rails format support
+          if (messagesResponse?.data?.success === true && messagesResponse.data.data?.messages) {
+            // Rails format: {success: true, data: {messages: [...]}}
+            setMessages(messagesResponse.data.data.messages);
             hasData = true;
-            console.log('Messages data loaded successfully');
+            console.log('Messages data loaded successfully (Rails format)');
+          } else if (messagesResponse?.data?.messages) {
+            // Legacy format: {messages: [...]}
+            setMessages(messagesResponse.data.messages);
+            hasData = true;
+            console.log('Messages data loaded successfully (legacy format)');
+          } else if (Array.isArray(messagesResponse?.data)) {
+            // Direct array format
+            setMessages(messagesResponse.data);
+            hasData = true;
+            console.log('Messages data loaded successfully (direct array format)');
           } else {
-            console.warn('Messages API returned unsuccessful response');
+            console.warn('Messages API returned unexpected response format', messagesResponse);
+            // Try to extract data from other potential formats
+            const data = messagesResponse?.data;
+            if (data && typeof data === 'object') {
+              // Look for any array property that might contain messages
+              const potentialMessageArrays = Object.values(data).filter(val => 
+                Array.isArray(val) && val.length > 0 && 
+                typeof val[0] === 'object' && val[0] !== null && 
+                'content' in val[0]
+              );
+              
+              if (potentialMessageArrays.length > 0) {
+                // Use the first array that looks like messages, with type checking
+                const messagesData = potentialMessageArrays[0];
+                // Ensure we're working with an array before validation
+                if (Array.isArray(messagesData) && isValidMessageArray(messagesData)) {
+                  setMessages(messagesData);
+                  hasData = true;
+                  console.log('Messages data extracted from unexpected format');
+                }
+              }
+            }
           }
         } catch (messagesErr: any) {
           console.error('Error fetching messages:', messagesErr?.response?.status, messagesErr?.message);
-          // Continue with other requests
+          // Continue despite errors
         }
         
         // If we didn't get any data at all, throw an error
@@ -459,24 +592,31 @@ export default function PatientDashboard() {
       {/* Welcome Banner with updated professional gradient */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-medical-teal-600 via-medical-teal-500 to-medical-blue-500 p-6 mb-8 shadow-md">
         <div className="absolute inset-0 opacity-10 bg-[url('/images/dots-pattern.svg')]"></div>
-        <div className="relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome back, {patientName}</h1>
-              <p className="text-teal-50">Your health dashboard is {loading ? 'updating' : 'up to date'}.</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <button onClick={() => router.push('/patient/profile')} className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 transition-colors rounded-lg text-white backdrop-blur-sm">
-                <ProfileAvatar 
-                  src={user?.profilePicture || "/images/profile-female.jpg"}
-                  alt={patientName} 
-                  initials={patientName.charAt(0)}
-                  size="sm"
-                  className="mr-2 border-2 border-white/50"
-                />
-                <span>Your Profile</span>
-              </button>
-            </div>
+
+        <div className="relative z-10 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
+              {loading ? (
+                <span className="animate-pulse">Welcome back...</span>
+              ) : error ? (
+                'Welcome to MedConnect'
+              ) : (
+                `Welcome back, ${patientName}`
+              )}
+            </h1>  
+            <p className="text-teal-50">Your health dashboard is {loading ? 'updating' : 'up to date'}.</p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <button onClick={() => router.push('/patient/profile')} className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 transition-colors rounded-lg text-white backdrop-blur-sm">
+              <ProfileAvatar 
+                src={user?.profilePicture}
+                alt={patientName} 
+                initials={patientName.charAt(0)}
+                size="sm"
+                className="mr-2 border-2 border-white/50"
+              />
+              <span>Your Profile</span>
+            </button>
           </div>
         </div>
       </div>
@@ -691,19 +831,34 @@ export default function PatientDashboard() {
               ) : (
                 <FlippableHealthCard 
                   patientName={patientName}
-                  patientId={'4'}
-                  dateOfBirth={'1992-05-30'}
-                  // Using real health metrics
-                  healthScore={92}
-                  bloodType={'O+'}
-                  emergencyContact={'Rihal (Bro)'}
-                  insuranceProvider={'ICICI Insurance'}
-                  policyNumber={'3231231231'}
-                  groupNumber={''}
-                  allergies={['non', 'heat']}
-                  conditions={[]}
-                  primaryPhysician={'Dr. Sarah Johnson'}
-                  lastCheckup={'March 15, 2025'}
+                  patientId={profile?.personal_info?.id?.toString() || profile?.id || user?.id || '0'}
+                  dateOfBirth={profile?.personal_info?.date_of_birth || profile?.dateOfBirth || ''}
+                  // Using real health metrics from the profile API
+                  healthScore={calculateHealthScore({
+                    hasProfile: !!profile,
+                    hasAppointments: appointments.length > 0,
+                    hasMedications: medications.length > 0,
+                    appointmentsCount: appointments.length,
+                    medicationsCount: medications.length,
+                    hasEmergencyContact: !!profile?.emergency_contact || !!profile?.emergencyContact,
+                    hasAllergies: (profile?.health_metrics?.allergies?.length || profile?.allergies?.length || 0) > 0,
+                    hasConditions: (profile?.health_history?.length || profile?.conditions?.length || 0) > 0,
+                  })}
+                  bloodType={profile?.health_metrics?.blood_type || profile?.bloodType || 'Unknown'}
+                  emergencyContact={
+                    profile?.emergency_contact ? 
+                      `${profile.emergency_contact.name} ${profile.emergency_contact.relationship ? `(${profile.emergency_contact.relationship})` : ''}` : 
+                    profile?.emergencyContact ? 
+                      `${profile.emergencyContact.name} (${profile.emergencyContact.relationship})` : 
+                    'Not set'
+                  }
+                  insuranceProvider={profile?.insurance?.provider || profile?.insuranceInfo?.provider || ''}
+                  policyNumber={profile?.insurance?.policy_number || profile?.insuranceInfo?.policyNumber || ''}
+                  groupNumber={profile?.insurance?.group_number || (profile?.insuranceInfo?.validUntil ? `Valid until: ${profile.insuranceInfo.validUntil}` : '')}
+                  allergies={profile?.health_metrics?.allergies || profile?.allergies || []}
+                  conditions={profile?.health_history?.map(h => h.condition) || profile?.conditions || []}
+                  primaryPhysician={'Dr. Sarah Johnson'} // Will integrate with provider data when available
+                  lastCheckup={'March 15, 2025'} // Will integrate with appointments history when available
                 />
               )}
             </div>

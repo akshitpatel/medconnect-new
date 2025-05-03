@@ -1,0 +1,765 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { CalendarClock, Search, Filter, Plus, ChevronDown, MoreVertical, Edit, Calendar, X, Trash, Eye, Clock, AlertCircle, CheckCircle, XCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import AnimatedCard from '@/app/components/ui/AnimatedCard';
+import { Badge } from '@/app/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/Card';
+import { Button } from '@/app/components/ui/button';
+import { Avatar } from '@/app/components/ui/Avatar';
+import { adminAPI } from '@/app/services/api';
+import { format, parseISO, addDays, isToday, isPast, isFuture } from 'date-fns';
+
+// Define types
+type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled_by_patient' | 'cancelled_by_provider' | 'no_show';
+type AppointmentType = 'consultation' | 'follow_up' | 'annual_check_up' | 'urgent_care' | 'specialist';
+type TabType = 'all' | 'today' | 'upcoming' | 'past';
+
+interface Patient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  avatar_url?: string;
+}
+
+interface Provider {
+  id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string;
+  email: string;
+  phone_number: string;
+  avatar_url?: string;
+}
+
+interface Appointment {
+  id: string;
+  patient_id: string;
+  provider_id: string;
+  appointment_type: AppointmentType;
+  status: AppointmentStatus;
+  scheduled_at: string;
+  duration_minutes: number;
+  notes?: string;
+  reason?: string;
+  patient: Patient;
+  provider: Provider;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AppointmentStats {
+  total: number;
+  scheduled: number;
+  completed: number;
+  cancelled_by_patient: number;
+  cancelled_by_provider: number;
+  no_show: number;
+  today: number;
+  this_week: number;
+  this_month: number;
+  by_type: {
+    consultation: number;
+    follow_up: number;
+    annual_check_up: number;
+    urgent_care: number;
+    specialist: number;
+  };
+}
+
+interface PaginationData {
+  current_page: number;
+  total_pages: number;
+  total_count: number;
+  per_page: number;
+}
+
+interface AppointmentFilters {
+  status?: AppointmentStatus;
+  appointment_type?: AppointmentType;
+  provider_id?: string;
+  patient_id?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  per_page?: number;
+  sort_by?: string;
+  sort_direction?: 'asc' | 'desc';
+}
+
+export default function AdminAppointmentsPage() {
+  // State variables
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState<AppointmentStats | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AppointmentFilters>({
+    page: 1,
+    per_page: 10,
+    sort_by: 'scheduled_at',
+    sort_direction: 'desc'
+  });
+  const [pagination, setPagination] = useState<PaginationData | null>(null);
+  
+  // Filter UI state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState<boolean>(false);
+  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | null>(null);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState<boolean>(false);
+  const [selectedType, setSelectedType] = useState<AppointmentType | null>(null);
+  const [currentTab, setCurrentTab] = useState<'all' | 'today' | 'upcoming' | 'past'>('all');
+  
+  // Filtered appointments based on UI filters (this is client-side filtering)
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  
+  // Filter UI state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState<boolean>(false);
+  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | null>(null);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState<boolean>(false);
+  const [selectedType, setSelectedType] = useState<AppointmentType | null>(null);
+  const [currentTab, setCurrentTab] = useState<'all' | 'today' | 'upcoming' | 'past'>('all');
+  
+  // Filtered appointments based on UI filters (this is client-side filtering)
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  
+  // Fetch appointments from API
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Add the search term to filters if provided
+        const apiFilters = { ...filters };
+          apiFilters.search = searchTerm;
+        }
+        
+        // Apply status filter if not 'all'
+        if (statusFilter !== 'all') {
+          apiFilters.status = statusFilter;
+        }
+        
+        // Apply type filter if not 'all'
+        if (typeFilter !== 'all') {
+          apiFilters.appointment_type = typeFilter;
+        }
+        
+        const response = await adminAPI.getAppointments(apiFilters);
+        
+        if (response.data?.success) {
+          setAppointments(response.data.data.appointments);
+          setPagination(response.data.data.pagination);
+        } else {
+          setError('Failed to fetch appointments');
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+        setError('An error occurred while fetching appointments');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAppointments();
+  }, [filters, statusFilter, typeFilter, searchTerm, refreshTrigger]);
+  
+  // Fetch appointment stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await adminAPI.getAppointmentStats();
+        if (response.data?.success) {
+          setStats(response.data.data.stats);
+        }
+      } catch (err) {
+        console.error('Error fetching appointment stats:', err);
+      }
+    };
+    
+    fetchStats();
+  }, [refreshTrigger]);
+  
+  // Handler for changing page
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({ ...prev, page }));
+  };
+  
+  // Handler for changing sort
+  const handleSort = (sortBy: string) => {
+    setFilters(prev => ({
+      ...prev,
+      sort_by: sortBy,
+      sort_direction: prev.sort_by === sortBy && prev.sort_direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  
+  // Handler for search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Reset to page 1 when searching
+    setFilters(prev => ({ ...prev, page: 1 }));
+  };
+  
+  // Handle refresh data
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
+  // Format appointment type for display
+  const formatAppointmentType = (type: AppointmentType): string => {
+  // Get status color for badges
+  const getStatusColor = (status: AppointmentStatus): string => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled_by_patient':
+      case 'cancelled_by_provider':
+        return 'bg-red-100 text-red-800';
+      case 'no_show':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Get type color for badges
+  const getTypeColor = (type: AppointmentType): string => {
+    switch (type) {
+      case 'consultation':
+        return 'bg-purple-100 text-purple-800';
+      case 'follow_up':
+        return 'bg-blue-100 text-blue-800';
+      case 'annual_check_up':
+        return 'bg-green-100 text-green-800';
+      case 'urgent_care':
+        return 'bg-red-100 text-red-800';
+      case 'specialist':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Format status for display
+  const formatStatus = (status: AppointmentStatus): string => {
+    switch (status) {
+      case 'scheduled':
+        return 'Scheduled';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled_by_patient':
+        return 'Cancelled by Patient';
+      case 'cancelled_by_provider':
+        return 'Cancelled by Provider';
+      case 'no_show':
+        return 'No Show';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+    }
+  };
+
+  // Format type for display
+  const formatType = (type: AppointmentType): string => {
+    switch (type) {
+      case 'consultation':
+        return 'Consultation';
+      case 'follow_up':
+        return 'Follow-up';
+      case 'annual_check_up':
+        return 'Annual Check-up';
+      case 'urgent_care':
+        return 'Urgent Care';
+      case 'specialist':
+        return 'Specialist';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateTimeStr: string): string => {
+    try {
+      const dateTime = parseISO(dateTimeStr);
+      return format(dateTime, 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateTimeStr;
+    }
+  };
+
+  // Format time for display
+  const formatTime = (dateTimeStr: string): string => {
+    try {
+      const dateTime = parseISO(dateTimeStr);
+      return format(dateTime, 'h:mm a');
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
+  };
+
+  // Calculate time slot duration
+  const calculateDuration = (dateTimeStr: string, durationMinutes: number): string => {
+    try {
+      const startTime = parseISO(dateTimeStr);
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+      return `${format(startTime, 'h:mm a')} - ${format(endTime, 'h:mm a')}`;
+    } catch (error) {
+      console.error('Error calculating duration:', error);
+      return `${durationMinutes} minutes`;
+    }
+  };
+
+  // Format date for grouping
+  const formatDateForGrouping = (dateTimeStr: string): string => {
+    try {
+      const dateTime = parseISO(dateTimeStr);
+      return format(dateTime, 'yyyy-MM-dd');
+    } catch (error) {
+      console.error('Error formatting date for grouping:', error);
+      return dateTimeStr;
+    }
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: AppointmentStatus) => {
+    switch (status) {
+      case 'scheduled':
+    case 'scheduled':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          <Clock className="h-3 w-3 mr-1" />Scheduled
+        </Badge>;
+    case 'completed':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />Completed
+        </Badge>;
+    case 'cancelled':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+          <XCircle className="h-3 w-3 mr-1" />Cancelled
+        </Badge>;
+    case 'no-show':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          <AlertCircle className="h-3 w-3 mr-1" />No Show
+        </Badge>;
+    default:
+        return null;
+    }
+  };
+
+  // Get type badge
+  const getTypeBadge = (type: AppointmentType) => {
+    const colors: Record<AppointmentType, string> = {
+      'consultation': 'bg-purple-50 text-purple-700 border-purple-200',
+      'follow-up': 'bg-teal-50 text-teal-700 border-teal-200',
+      'annual-checkup': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      'urgent-care': 'bg-red-50 text-red-700 border-red-200',
+      'lab-test': 'bg-amber-50 text-amber-700 border-amber-200'
+    };
+    
+    return <Badge variant="outline" className={colors[type]}>
+      {formatType(type)}
+    </Badge>;
+  };
+
+  // If still loading, show skeleton
+  if (isLoading) {
+  return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Appointment Management</h1>
+        </div>
+        <AnimatedCard className="rounded-xl p-6 bg-white dark:bg-gray-800 shadow-md">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-md mb-6"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-md mb-4"></div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-md mb-3"></div>
+            ))}
+          </div>
+        </AnimatedCard>
+      </div>
+    );
+  }
+  
+  // Get appointment counts
+  const todayCount = appointments.filter(a => isToday(a.date)).length;
+  const upcomingCount = appointments.filter(a => isFuture(a.date) && !isToday(a.date)).length;
+  const scheduledCount = appointments.filter(a => a.status === 'scheduled').length;
+  const completedCount = appointments.filter(a => a.status === 'completed').length;
+  
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+          <CalendarClock className="inline-block mr-3 h-8 w-8 text-teal-500" />
+          Appointment Management
+        </h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
+          Schedule and manage patient appointments efficiently
+        </p>
+          </div>
+          
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Today's Appointments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{todayCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{upcomingCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Scheduled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{scheduledCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedCount}</div>
+          </CardContent>
+        </Card>
+          </div>
+          
+      {/* Action Button */}
+      <div className="flex justify-end mb-6">
+        <Button className="bg-teal-500 hover:bg-teal-600">
+          <Plus className="h-4 w-4 mr-2" />
+          New Appointment
+        </Button>
+          </div>
+          
+      {/* Tabs and Filters */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="mb-6">
+            <div className="flex space-x-4 mb-4 border-b border-gray-200 dark:border-gray-700">
+              <button 
+                onClick={() => setCurrentTab('all')} 
+                className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
+                  currentTab === 'all' 
+                    ? 'border-teal-500 text-teal-600 dark:text-teal-400' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                All Appointments
+              </button>
+              <button 
+                onClick={() => setCurrentTab('today')} 
+                className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
+                  currentTab === 'today' 
+                    ? 'border-teal-500 text-teal-600 dark:text-teal-400' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                Today
+              </button>
+              <button 
+                onClick={() => setCurrentTab('upcoming')} 
+                className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
+                  currentTab === 'upcoming' 
+                    ? 'border-teal-500 text-teal-600 dark:text-teal-400' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                Upcoming
+              </button>
+              <button 
+                onClick={() => setCurrentTab('past')} 
+                className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
+                  currentTab === 'past' 
+                    ? 'border-teal-500 text-teal-600 dark:text-teal-400' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                Past
+              </button>
+        </div>
+        
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            {/* Search */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Search appointments..."
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+              
+              {/* Status Filter */}
+              <div className="relative">
+                <button
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  className="px-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    <Filter className="h-5 w-5 mr-2 text-gray-400" />
+                    <span>Status: {selectedStatus === 'all' ? 'All' : selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)}</span>
+                  </div>
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-600 py-1">
+                    <div
+                      onClick={() => {
+                        setSelectedStatus('all');
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedStatus === 'all' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      All
+                    </div>
+                    <div
+                      onClick={() => {
+                        setSelectedStatus('scheduled');
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedStatus === 'scheduled' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Scheduled
+            </div>
+                    <div
+                      onClick={() => {
+                        setSelectedStatus('completed');
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedStatus === 'completed' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Completed
+            </div>
+                    <div
+                      onClick={() => {
+                        setSelectedStatus('cancelled');
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedStatus === 'cancelled' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Cancelled
+            </div>
+                    <div
+                      onClick={() => {
+                        setSelectedStatus('no-show');
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedStatus === 'no-show' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      No Show
+                    </div>
+                  </div>
+                )}
+            </div>
+            
+              {/* Type Filter */}
+              <div className="relative">
+            <button
+                  onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+                  className="px-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    <Filter className="h-5 w-5 mr-2 text-gray-400" />
+                    <span>Type: {selectedType === 'all' ? 'All' : formatType(selectedType)}</span>
+                  </div>
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+            </button>
+                {typeDropdownOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-600 py-1">
+                    <div
+                      onClick={() => {
+                        setSelectedType('all');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'all' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      All
+                    </div>
+                    <div
+                      onClick={() => {
+                        setSelectedType('consultation');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'consultation' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Consultation
+                    </div>
+                    <div
+                      onClick={() => {
+                        setSelectedType('follow-up');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'follow-up' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Follow-up
+                    </div>
+                    <div
+                      onClick={() => {
+                        setSelectedType('annual-checkup');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'annual-checkup' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Annual Checkup
+                    </div>
+                    <div
+                      onClick={() => {
+                        setSelectedType('urgent-care');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'urgent-care' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Urgent Care
+        </div>
+                    <div
+                      onClick={() => {
+                        setSelectedType('lab-test');
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedType === 'lab-test' ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
+                      }`}
+                    >
+                      Lab Test
+                    </div>
+                  </div>
+                )}
+                        </div>
+                        </div>
+                      </div>
+        </CardContent>
+      </Card>
+
+      {/* Appointments List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appointments ({filteredAppointments.length})</CardTitle>
+          <CardDescription>
+            {currentTab === 'all' ? 'All appointments' : 
+             currentTab === 'today' ? 'Appointments scheduled for today' :
+             currentTab === 'upcoming' ? 'Upcoming appointments' : 'Past appointments'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {filteredAppointments.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">No appointments found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Try adjusting your filters or search criteria</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredAppointments.map((appointment) => (
+                <div key={appointment.id} className="py-4 first:pt-0 last:pb-0">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between">
+                    <div className="flex items-start space-x-4">
+                      <Avatar className="h-10 w-10 mt-1">
+                        <div className="flex h-full w-full items-center justify-center bg-teal-100 text-teal-800 rounded-full">
+                          {appointment.patientName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mr-2">
+                            {appointment.patientName}
+                          </h3>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            ({appointment.patientId})
+                          </span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {getStatusBadge(appointment.status)}
+                          {getTypeBadge(appointment.type)}
+                        </div>
+                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                            {formatDate(appointment.date)}
+                            <span className="mx-2">•</span>
+                            <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                            {appointment.startTime} - {appointment.endTime}
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+                    
+                    <div className="mt-4 md:mt-0 flex items-center space-x-2">
+                      <Button variant="outline" size="sm" className="text-gray-700 dark:text-gray-300">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-blue-600 dark:text-blue-400">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600 dark:text-red-400">
+                        <Trash className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                      </div>
+          </div>
+          
+                  {appointment.notes && (
+                    <div className="mt-3 ml-14 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+                      <span className="font-medium">Notes:</span> {appointment.notes}
+              </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Showing {filteredAppointments.length} of {appointments.length} appointments
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" disabled>Previous</Button>
+            <Button variant="outline" size="sm" disabled>Next</Button>
+        </div>
+        </CardFooter>
+      </Card>
+      </div>
+  );
+} 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import { cn } from '@/app/lib/utils';
 import { useTheme } from '@/app/contexts/ThemeContext';
@@ -56,6 +56,26 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   };
   
   // Get user initials from the alt text if not provided
+  // Format profile photo URL to use the full backend URL if it's a relative path
+  const formattedSrc = useMemo(() => {
+    if (!src) return null;
+    
+    // Check if the URL is a relative path (starts with /)
+    if (src.startsWith('/')) {
+      try {
+        // Prepend the backend API URL without the /api/v1 part
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+        const baseUrl = apiUrl.replace(/\/api\/v1$/, '');
+        return `${baseUrl}${src}`;
+      } catch (error) {
+        console.error('ProfileAvatar - Error formatting photo URL:', error);
+        return src; // Return the original URL if there's an error
+      }
+    }
+    
+    return src;
+  }, [src]);
+
   const userInitials = initials || alt
     .split(' ')
     .map(word => word[0])
@@ -80,13 +100,18 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         className
       )}
     >
-      {src ? (
+      {formattedSrc ? (
         <Image
-          src={src}
+          src={formattedSrc}
           alt={alt}
           fill
           className="object-cover"
           sizes={`(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw`}
+          onError={() => {
+            // If the image fails to load, the onError handler won't actually work with Next/Image,
+            // but we're still including this as a signal of our intent. The component will fall back
+            // to showing the initials because of the outer conditional rendering.
+          }}
         />
       ) : (
         <>

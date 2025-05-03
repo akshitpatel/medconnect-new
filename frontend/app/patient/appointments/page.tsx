@@ -3,36 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { format, addMonths, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { Card } from '@/app/components/ui/Card';
 import { Button } from '@/app/components/ui/button';
 import { Navbar } from '@/app/components/ui/Navbar';
 import { patientAPI } from '@/app/services/api'; // Import the API module
+import AppointmentCardWrapper, { PageAppointment } from '@/app/components/appointments/AppointmentCardWrapper';
+
+// Note: We're using PageAppointment type imported from the wrapper component
 
 // DEBUG: Log when the appointment page module is loaded
 console.log('[APPOINTMENTS DEBUG] patient/appointments/page.tsx loaded');
-
-// Define interfaces matching the backend serializer
-interface Provider {
-  id: string;
-  full_name: string;
-  email: string;
-  // Specialization comes from ProviderProfile, fetch separately or add to serializer
-}
-
-interface Appointment {
-  id: string;
-  provider: Provider; // Nested provider object
-  appointment_datetime: string; // Use backend field name
-  duration_minutes: number; // Use backend field name
-  status: string; // Backend status (e.g., 'scheduled') - map later if needed
-  appointment_type: string; // Use backend field name
-  reason?: string; // Optional
-  notes?: string; // Optional
-  created_at: string;
-  updated_at: string;
-  location?: string; // Keep if needed, but not directly from backend model yet
-}
 
 // Mock data removed - will fetch real data
 
@@ -90,16 +72,19 @@ const getAppointmentTypeIcon = (type: string) => {
 };
 
 export default function AppointmentsPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]); // State for fetched data
+  const [appointments, setAppointments] = useState<PageAppointment[]>([]); // State for fetched data
 
   useEffect(() => {
     console.log('[APPOINTMENTS DEBUG] Appointments state updated:', appointments);
   }, [appointments]);
 
-  const [loading, setLoading] = useState(true); // Keep loading state
-  const [error, setError] = useState<string | null>(null); // State for errors
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancelingAppointmentId, setCancelingAppointmentId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (error) {
@@ -109,6 +94,52 @@ export default function AppointmentsPage() {
 
   const [activeAppointment, setActiveAppointment] = useState<string | null>(null);
   const [showCalendarView, setShowCalendarView] = useState(false);
+
+  // Handle appointment cancellation
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!appointmentId) return;
+    
+    setCancelingAppointmentId(appointmentId);
+    setError(null);
+    setSuccessMessage(null);
+    
+    try {
+      const response = await patientAPI.cancelAppointment(appointmentId);
+      
+      if (response.data?.success) {
+        // Update the appointment in the list with the new status
+        setAppointments(prevAppointments => 
+          prevAppointments.map(appointment => 
+            appointment.id === appointmentId 
+              ? { ...appointment, status: 'cancelled_by_patient' } 
+              : appointment
+          )
+        );
+        setSuccessMessage('Appointment successfully cancelled.');
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 5000);
+      } else {
+        setError(response.data?.errors?.[0] || 'Failed to cancel appointment. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('[APPOINTMENTS DEBUG] Error cancelling appointment:', err);
+      setError(err.response?.data?.errors?.[0] || 'Failed to cancel appointment. Please try again.');
+    } finally {
+      setCancelingAppointmentId(null);
+    }
+  };
+  
+  // Handle appointment rescheduling (redirect to booking page with pre-selected provider)
+  const handleRescheduleAppointment = (appointment: PageAppointment) => {
+    if (!appointment || !appointment.provider) return;
+    
+    // Navigate to booking page with provider pre-selected
+    // In a real implementation, you might want to pass more data via state or query params
+    router.push(`/patient/appointments/book?provider=${appointment.provider.id}`);
+  };
 
   // Fetch appointments on mount
   useEffect(() => {
@@ -158,7 +189,7 @@ export default function AppointmentsPage() {
   });
 
   // Group appointments by date
-  const groupedAppointments: { [date: string]: Appointment[] } = {};
+  const groupedAppointments: { [date: string]: PageAppointment[] } = {};
   monthFilteredAppointments.forEach(appointment => {
     const dateKey = format(parseISO(appointment.appointment_datetime), 'yyyy-MM-dd');
     if (!groupedAppointments[dateKey]) {
@@ -240,6 +271,7 @@ export default function AppointmentsPage() {
 
           <div className="self-end md:self-auto">
             <Button 
+              onClick={() => window.location.href = '/patient/appointments/book'}
               className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-lg shadow-teal-200/50 dark:shadow-teal-900/30 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 rounded-xl px-6"
             >
               <span className="relative flex items-center">
@@ -354,6 +386,7 @@ export default function AppointmentsPage() {
                     : "You don't have any appointments for this month."}
               </p>
               <Button 
+                onClick={() => router.push('/patient/appointments/book')}
                 className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-lg shadow-teal-200/30 dark:shadow-teal-900/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 rounded-xl"
               >
                 Schedule New Appointment
@@ -386,121 +419,56 @@ export default function AppointmentsPage() {
                   </div>
                 </div>
                 
+                {/* Display success message if an appointment was successfully cancelled */}
+                {successMessage && (
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200 text-sm">
+                    {successMessage}
+                  </div>
+                )}
+                
+                {/* Display error message if there was an error */}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
+                    {error}
+                  </div>
+                )}
+                
+                {/* Display success message if an appointment was successfully cancelled */}
+                {successMessage && (
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200 text-sm">
+                    {successMessage}
+                  </div>
+                )}
+                
+                {/* Display error message if there was an error */}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
+                    {error}
+                  </div>
+                )}
+                
                 <div className="space-y-4">
-                  {groupedAppointments[dateKey].map((appointment, apptIndex) => {
-                    const statusColors = getModernStatusColor(appointment.status);
-                    return (
-                      <div 
-                        key={appointment.id}
-                        className={`bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-white/20 dark:border-gray-700/30 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-                          activeAppointment === appointment.id ? 'ring-2 ring-teal-300 dark:ring-teal-700' : ''
-                        }`}
-                        onMouseEnter={() => setActiveAppointment(appointment.id)}
-                        onMouseLeave={() => setActiveAppointment(null)}
-                        style={{ 
-                          transitionDelay: `${(apptIndex * 50)}ms`,
-                          opacity: loading ? 0 : 1,
-                          transform: loading ? 'translateY(20px)' : 'translateY(0)'
-                        }}
-                      >
-                        {/* Status indicator line at top */}
-                        <div className={`h-1 ${statusColors.bg} ${statusColors.border} w-full`}></div>
-                        
-                        <div className="p-6">
-                          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                            <div className="flex-grow">
-                              {/* Doctor/Provider Information */}
-                              <div className="flex items-start">
-                                <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center mr-4 text-teal-600 dark:text-teal-300 font-medium text-lg">
-                                  {appointment.provider?.full_name?.split(' ').map(name => name[0]).join('') || ''}
-                                </div>
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                                      {appointment.provider?.full_name || 'N/A'}
-                                    </h3>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text} border ${statusColors.border}`}>
-                                      {appointment.status.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    {/* TODO: Fetch/display specialization from provider profile */}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              {/* Appointment Details */}
-                              <div className="mt-4 ml-16 space-y-2">
-                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-5 h-5 mr-2 ${statusColors.icon}`}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span className="font-medium">{formatAppointmentTime(appointment.appointment_datetime, appointment.duration_minutes)}</span>
-                                  <span className="ml-2 text-gray-500 dark:text-gray-400">({appointment.duration_minutes} min)</span>
-                                </div>
-                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                  <span className={`mr-2 ${statusColors.icon}`}>{getAppointmentTypeIcon(appointment.appointment_type)}</span>
-                                  <span className="font-medium">
-                                    {appointment.appointment_type === 'in-person' ? 'In-person visit' : appointment.appointment_type === 'video' ? 'Video call' : 'Phone call'}
-                                  </span>
-                                </div>
-                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                  {appointment.location && appointment.appointment_type === 'in-person' && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                      <strong className="font-medium">Location:</strong> {appointment.location}
-                                    </p>
-                                  )}
-                                </div>
-                                {appointment.notes && (
-                                  <div className="flex items-start text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg mt-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2 flex-shrink-0 text-gray-400 dark:text-gray-500">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                                    </svg>
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-200">Notes:</p>
-                                      <p>{appointment.notes}</p>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-2 mt-4 lg:mt-0 justify-end">
-                              {appointment.status === 'scheduled' && (
-                                <>
-                                  {appointment.appointment_type === 'video' && (
-                                    <Button 
-                                      className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 rounded-xl"
-                                    >
-                                      Join Call
-                                    </Button>
-                                  )}
-                                  <Button 
-                                    variant="outline"
-                                    className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 transition-all duration-300 hover:border-teal-300 dark:hover:border-teal-700 rounded-xl"
-                                  >
-                                    Reschedule
-                                  </Button>
-                                  <Button 
-                                    variant="outline"
-                                    className="border-gray-300 dark:border-gray-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-300 rounded-xl"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </>
-                              )}
-                              {appointment.status === 'completed' && (
-                                <Button className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 rounded-xl">
-                                  View Summary
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {groupedAppointments[dateKey].map((appointment) => (
+                    <div 
+                      key={appointment.id}
+                      className={`transition-all duration-300 ${
+                        cancelingAppointmentId === appointment.id ? 'opacity-70 pointer-events-none' : ''
+                      }`}
+                      style={{
+                        transitionDelay: "50ms",
+                        opacity: loading ? 0 : 1,
+                        transform: loading ? 'translateY(20px)' : 'translateY(0)'
+                      }}
+                    >
+                      <AppointmentCardWrapper
+                        appointment={appointment}
+                        showActions={true}
+                        onCancel={handleCancelAppointment}
+                        onReschedule={handleRescheduleAppointment}
+                        className="hover:shadow-xl hover:-translate-y-1"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

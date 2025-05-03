@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { FaEnvelope, FaLock, FaGoogle, FaFacebook, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/Logo';
+import AdminLoginButton from '@/app/admin/auth/AdminLoginButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -203,6 +204,12 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          
+          {/* Admin quick access section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">Administrator Access</h3>
+            <AdminLoginButton />
+          </div>
         </div>
       </div>
     </div>

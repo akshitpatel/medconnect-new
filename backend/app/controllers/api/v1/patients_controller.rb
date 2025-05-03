@@ -20,7 +20,8 @@ module Api
                 date_of_birth: current_user.date_of_birth,
                 gender: current_user.gender,
                 address: current_user.address,
-                passport_number: current_user.passport_number
+                passport_number: current_user.passport_number,
+                profile_picture: current_user.profile_picture
               },
               emergency_contact: emergency_contact_data,
               insurance: insurance_data,
@@ -110,7 +111,8 @@ module Api
                 date_of_birth: current_user.date_of_birth,
                 gender: current_user.gender,
                 address: current_user.address,
-                passport_number: current_user.passport_number
+                passport_number: current_user.passport_number,
+                profile_picture: current_user.profile_picture
               }
             }
           }

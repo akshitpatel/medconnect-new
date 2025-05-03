@@ -1,0 +1,546 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { CalendarClock, Search, Filter, Plus, ChevronDown, MoreVertical, Edit, Calendar, X, Trash, Eye, Clock, AlertCircle, CheckCircle, XCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import AnimatedCard from '@/app/components/ui/AnimatedCard';
+import { Badge } from '@/app/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/Card';
+import { Button } from '@/app/components/ui/button';
+import { Avatar } from '@/app/components/ui/Avatar';
+import { adminAPI } from '@/app/services/api';
+import { format, parseISO, addDays, isToday, isPast, isFuture } from 'date-fns';
+
+// Define types
+type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled_by_patient' | 'cancelled_by_provider' | 'no_show';
+type AppointmentType = 'consultation' | 'follow_up' | 'annual_check_up' | 'urgent_care' | 'specialist';
+type TabType = 'all' | 'today' | 'upcoming' | 'past';
+type SortDirection = 'asc' | 'desc';
+
+interface Patient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number?: string;
+  date_of_birth?: string;
+  avatar_url?: string;
+}
+
+interface Provider {
+  id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string;
+  email: string;
+  phone_number: string;
+  avatar_url?: string;
+}
+
+interface Appointment {
+  id: string;
+  patient_id: string;
+  provider_id: string;
+  appointment_type: AppointmentType;
+  status: AppointmentStatus;
+  scheduled_at: string;
+  duration_minutes: number;
+  notes?: string;
+  reason?: string;
+  patient: Patient;
+  provider: Provider;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AppointmentStats {
+  total: number;
+  scheduled: number;
+  completed: number;
+  cancelled_by_patient: number;
+  cancelled_by_provider: number;
+  no_show: number;
+  today: number;
+  this_week: number;
+  this_month: number;
+  by_type: {
+    consultation: number;
+    follow_up: number;
+    annual_check_up: number;
+    urgent_care: number;
+    specialist: number;
+  }
+}
+
+interface PaginationData {
+  current_page: number;
+  total_pages: number;
+  total_count: number;
+  per_page: number;
+}
+
+interface AppointmentFilters {
+  status?: AppointmentStatus;
+  appointment_type?: AppointmentType;
+  provider_id?: string;
+  patient_id?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  per_page?: number;
+  sort_by?: string;
+  sort_direction?: SortDirection;
+  search_term?: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
+
+interface AppointmentResponse {
+  appointments: Appointment[];
+  pagination: PaginationData;
+  stats: AppointmentStats;
+}
+
+export default function AdminAppointmentsPage() {
+  // State for appointments and stats
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState<AppointmentStats | null>(null);
+  const [pagination, setPagination] = useState<PaginationData>({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 10
+  });
+  
+  // State for loading and error handling
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // State for filters and UI controls
+  const [filters, setFilters] = useState<AppointmentFilters>({
+    page: 1,
+    per_page: 10,
+    sort_by: 'scheduled_at',
+    sort_direction: 'desc'
+  });
+  
+  // UI state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState<boolean>(false);
+  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | null>(null);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState<boolean>(false);
+  const [selectedType, setSelectedType] = useState<AppointmentType | null>(null);
+  const [currentTab, setCurrentTab] = useState<TabType>('all');
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  
+  // Filtered appointments for display
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  
+  // Fetch appointments from API
+  const fetchAppointments = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Create API filters object
+      const apiFilters: AppointmentFilters = { ...filters };
+      
+      // Add search term if exists
+      if (searchTerm.trim() !== '') {
+        apiFilters.search_term = searchTerm.trim();
+      }
+      
+      // Set date filters based on current tab
+      if (currentTab === 'today') {
+        const today = new Date();
+        apiFilters.date_from = format(today, 'yyyy-MM-dd');
+        apiFilters.date_to = format(today, 'yyyy-MM-dd');
+      } else if (currentTab === 'upcoming') {
+        const today = new Date();
+        apiFilters.date_from = format(addDays(today, 1), 'yyyy-MM-dd');
+      } else if (currentTab === 'past') {
+        const today = new Date();
+        apiFilters.date_to = format(addDays(today, -1), 'yyyy-MM-dd');
+      }
+      
+      // Set status filter if selected
+      if (selectedStatus) {
+        apiFilters.status = selectedStatus;
+      }
+      
+      // Set appointment type filter if selected
+      if (selectedType) {
+        apiFilters.appointment_type = selectedType;
+      }
+      
+      const response = await adminAPI.getAppointments(apiFilters);
+      const responseData = response.data as ApiResponse<AppointmentResponse>;
+      
+      if (responseData.success) {
+        setAppointments(responseData.data.appointments);
+        setFilteredAppointments(responseData.data.appointments);
+        setPagination(responseData.data.pagination);
+        setStats(responseData.data.stats);
+      } else {
+        setError(responseData.message || 'Error fetching appointments');
+      }
+    } catch (err) {
+      setError('Failed to fetch appointments. Please try again.');
+      console.error('Error fetching appointments:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, searchTerm, currentTab, selectedStatus, selectedType]);
+  
+  // Fetch stats separately (used for refresh)
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await adminAPI.getAppointmentStats();
+      const responseData = response.data as ApiResponse<AppointmentStats>;
+      
+      if (responseData.success) {
+        setStats(responseData.data);
+      }
+    } catch (err) {
+      console.error('Error fetching appointment stats:', err);
+    }
+  }, []);
+  
+  // Initial data load
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+  
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({
+      ...prev,
+      page
+    }));
+  };
+  
+  // Handle sorting
+  const handleSort = (sortBy: string) => {
+    setFilters(prev => ({
+      ...prev,
+      sort_by: sortBy,
+      sort_direction: prev.sort_by === sortBy && prev.sort_direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchAppointments();
+  };
+  
+  // Handle data refresh
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
+  // Helper to format appointment type for display
+  const formatAppointmentType = (type: AppointmentType): string => {
+    const typeMap: Record<AppointmentType, string> = {
+      consultation: 'Consultation',
+      follow_up: 'Follow-up',
+      annual_check_up: 'Annual Check-up',
+      urgent_care: 'Urgent Care',
+      specialist: 'Specialist'
+    };
+    
+    return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+  };
+  
+  // Helper to format appointment status for display
+  const formatAppointmentStatus = (status: AppointmentStatus): string => {
+    const statusMap: Record<AppointmentStatus, string> = {
+      scheduled: 'Scheduled',
+      completed: 'Completed',
+      cancelled_by_patient: 'Cancelled by Patient',
+      cancelled_by_provider: 'Cancelled by Provider',
+      no_show: 'No Show'
+    };
+    
+    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  };
+  
+  // Helper to get status badge color
+  const getStatusBadgeColor = (status: AppointmentStatus): string => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled_by_patient':
+      case 'cancelled_by_provider':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'no_show':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // Helper to get status icon
+  const getStatusIcon = (status: AppointmentStatus) => {
+    switch (status) {
+      case 'scheduled':
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'cancelled_by_patient':
+      case 'cancelled_by_provider':
+        return <XCircle className="h-4 w-4 text-yellow-600" />;
+      case 'no_show':
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-gray-600" />;
+    }
+  };
+  
+  // Helper to get appointment type badge color
+  const getTypeBadgeColor = (type: AppointmentType): string => {
+    const typeColorMap: Record<AppointmentType, string> = {
+      consultation: 'bg-purple-100 text-purple-800',
+      follow_up: 'bg-indigo-100 text-indigo-800',
+      annual_check_up: 'bg-teal-100 text-teal-800',
+      urgent_care: 'bg-red-100 text-red-800',
+      specialist: 'bg-amber-100 text-amber-800'
+    };
+    
+    return typeColorMap[type] || 'bg-gray-100 text-gray-800';
+  };
+  
+  // Render stat cards
+  const renderStatCards = () => {
+    if (!stats) return null;
+    
+    const statCards = [
+      {
+        title: 'Total Appointments',
+        value: stats.total,
+        icon: <CalendarClock className="h-8 w-8 text-blue-500" />,
+        color: 'border-blue-200 bg-blue-50'
+      },
+      {
+        title: 'Scheduled',
+        value: stats.scheduled,
+        icon: <Clock className="h-8 w-8 text-indigo-500" />,
+        color: 'border-indigo-200 bg-indigo-50'
+      },
+      {
+        title: 'Completed',
+        value: stats.completed,
+        icon: <CheckCircle className="h-8 w-8 text-green-500" />,
+        color: 'border-green-200 bg-green-50'
+      },
+      {
+        title: 'Today',
+        value: stats.today,
+        icon: <Calendar className="h-8 w-8 text-purple-500" />,
+        color: 'border-purple-200 bg-purple-50'
+      }
+    ];
+    
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        {statCards.map((card, index) => (
+          <AnimatedCard key={index} delay={index * 0.1}>
+            <Card className={`border-l-4 ${card.color}`}>
+              <CardContent className="flex items-center justify-between p-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                  <p className="mt-1 text-3xl font-semibold">{card.value}</p>
+                </div>
+                <div>{card.icon}</div>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+        ))}
+      </div>
+    );
+  };
+  
+  // Render filters and search
+  const renderFilters = () => {
+    return (
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search by patient or provider name..."
+              className="h-10 w-full rounded-md border border-gray-300 bg-white pl-10 pr-4 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </form>
+        </div>
+        
+        <div className="flex flex-row gap-2">
+          {/* Status filter dropdown */}
+          <div className="relative">
+            <Button
+              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              variant="outline"
+              className="flex items-center gap-1"
+            >
+              <Filter className="h-4 w-4" />
+              {selectedStatus ? formatAppointmentStatus(selectedStatus) : 'Status'}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            
+            {statusDropdownOpen && (
+              <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setSelectedStatus(null);
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === null && <span className="font-semibold">✓</span>} All Statuses
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('scheduled');
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === 'scheduled' && <span className="font-semibold">✓</span>} Scheduled
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('completed');
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === 'completed' && <span className="font-semibold">✓</span>} Completed
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('cancelled_by_patient');
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === 'cancelled_by_patient' && <span className="font-semibold">✓</span>} Cancelled by Patient
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('cancelled_by_provider');
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === 'cancelled_by_provider' && <span className="font-semibold">✓</span>} Cancelled by Provider
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('no_show');
+                      setStatusDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedStatus === 'no_show' && <span className="font-semibold">✓</span>} No Show
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Appointment type filter dropdown */}
+          <div className="relative">
+            <Button
+              onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+              variant="outline"
+              className="flex items-center gap-1"
+            >
+              <Filter className="h-4 w-4" />
+              {selectedType ? formatAppointmentType(selectedType) : 'Type'}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            
+            {typeDropdownOpen && (
+              <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setSelectedType(null);
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === null && <span className="font-semibold">✓</span>} All Types
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedType('consultation');
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === 'consultation' && <span className="font-semibold">✓</span>} Consultation
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedType('follow_up');
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === 'follow_up' && <span className="font-semibold">✓</span>} Follow-up
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedType('annual_check_up');
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === 'annual_check_up' && <span className="font-semibold">✓</span>} Annual Check-up
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedType('urgent_care');
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === 'urgent_care' && <span className="font-semibold">✓</span>} Urgent Care
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedType('specialist');
+                      setTypeDropdownOpen(false);
+                    }}
+                    className="text-left block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {selectedType === 'specialist' && <span className="font-semibold">✓</span>} Specialist
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-1">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          
+          <Button className="flex items-center gap-1">
+            <Plus className="h-4 w-4" />
+            New Appointment
+          </Button>
+        </div>
+      </div>
+    );
+  };

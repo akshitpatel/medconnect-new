@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_28_180000) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_30_075000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -144,6 +144,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_28_180000) do
     t.index ["provider_id"], name: "index_prescriptions_on_provider_id"
   end
 
+  create_table "provider_availabilities", force: :cascade do |t|
+    t.integer "provider_id"
+    t.integer "day_of_week"
+    t.time "start_time"
+    t.time "end_time"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "provider_profiles", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "specialization"
@@ -158,6 +167,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_28_180000) do
     t.jsonb "availability"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider_type", default: "doctor"
+    t.jsonb "facility_details", default: {}
+    t.string "equipment", default: [], array: true
+    t.string "insurance_providers", default: [], array: true
+    t.jsonb "operating_hours", default: {}
+    t.index ["provider_type"], name: "index_provider_profiles_on_provider_type"
     t.index ["user_id"], name: "index_provider_profiles_on_user_id"
   end
 
@@ -176,6 +191,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_28_180000) do
     t.integer "role", default: 0, null: false
     t.text "address"
     t.string "passport_number"
+    t.string "profile_picture"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["phone"], name: "index_users_on_phone", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true

@@ -4,6 +4,7 @@ class User < ApplicationRecord
 
   has_many :appointments_as_patient, class_name: 'Appointment', foreign_key: 'patient_id', dependent: :destroy
   has_many :appointments_as_provider, class_name: 'Appointment', foreign_key: 'provider_id', dependent: :destroy
+  has_many :availabilities, class_name: 'ProviderAvailability', foreign_key: 'provider_id', dependent: :destroy
 
   has_many :medical_records_as_patient, class_name: 'MedicalRecord', foreign_key: 'patient_id', dependent: :destroy
   has_many :medical_records_as_provider, class_name: 'MedicalRecord', foreign_key: 'provider_id', dependent: :nullify
