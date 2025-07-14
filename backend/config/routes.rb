@@ -24,6 +24,11 @@ Rails.application.routes.draw do
       post 'auth/login', to: 'auth#login'
       delete 'auth/logout', to: 'auth#logout'
       get 'auth/me', to: 'users#me'
+      
+      # Password management
+      post 'auth/forgot-password', to: 'passwords#forgot_password'
+      post 'auth/reset-password', to: 'passwords#reset_password'
+      post 'auth/change-password', to: 'passwords#change_password'
 
       # Patient panel endpoints
       resources :patients, only: [] do

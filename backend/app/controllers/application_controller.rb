@@ -12,7 +12,11 @@ class ApplicationController < ActionController::API
   def authenticate_user!
     unless user_signed_in?
       Rails.logger.warn("[AUTH] User not signed in. Headers: #{request.headers['Authorization']}")
-      render json: { error: 'You need to sign in or sign up before continuing.' }, status: :unauthorized
+      render json: { 
+        success: false,
+        error: 'Authentication required. Please log in to continue.',
+        code: 'AUTHENTICATION_REQUIRED'
+      }, status: :unauthorized
     end
   end
 

@@ -30,7 +30,12 @@ module Api
         user = User.find_by(email: auth_params[:email])
         
         if user&.valid_password?(auth_params[:password])
-          sign_in(user)
+          # Handle remember me functionality
+          remember_me = auth_params[:remember_me] == 'true' || auth_params[:remember_me] == true
+          
+          # Sign in with remember me option
+          sign_in(user, remember: remember_me)
+          
           render json: {
             success: true,
             data: {
@@ -48,17 +53,25 @@ module Api
       end
 
       def logout
-        sign_out(current_user)
-        render json: { 
-          success: true,
-          message: 'Logged out successfully'
-        }
+        if current_user
+          # This will automatically blacklist the token via devise-jwt
+          sign_out(current_user)
+          render json: { 
+            success: true,
+            message: 'Logged out successfully'
+          }
+        else
+          render json: { 
+            success: false,
+            error: 'No active session found'
+          }, status: :unauthorized
+        end
       end
 
       private
 
       def user_params
-        params.require(:user).permit(:full_name, :email, :password, :password_confirmation, :phone, :date_of_birth)
+        params.require(:user).permit(:full_name, :email, :password, :password_confirmation, :phone, :date_of_birth, :gender)
       end
     end
   end
