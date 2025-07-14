@@ -1,73 +1,84 @@
 module Api
   module V1
-    class AppointmentsController < BaseController # Inherit from BaseController for auth
+    class AppointmentsController < BaseController
       before_action :authenticate_user!
-      before_action :find_appointment, only: [:show, :update, :cancel]
+      before_action :set_appointment, only: [:show, :update, :destroy]
+      before_action :authorize_appointment_access!, only: [:show, :update, :destroy]
 
-      # GET /api/v1/patients/appointments
+      # GET /api/v1/appointments
       def index
-        # Base query for the patient's appointments with provider data included
-        appointments = current_user.appointments_as_patient.includes(:provider)
+        @appointments = if current_user.patient?
+          current_user.appointments_as_patient
+        elsif current_user.provider?
+          current_user.appointments_as_provider
+        else
+          Appointment.none
+        end
 
-        # Apply filtering if parameters are provided
-        filtered = apply_filters(appointments)
+        @appointments = @appointments.includes(:patient, :provider)
+                                   .order(appointment_datetime: :desc)
 
-        # Apply pagination if needed
-        paginated = paginate(filtered)
+        # Apply filters
+        @appointments = apply_filters(@appointments)
+        
+        # Apply pagination
+        @appointments = paginate(@appointments)
 
         render json: {
           success: true,
           data: {
-            appointments: paginated.map { |appt| appointment_with_provider(appt) },
-            pagination: pagination_data(filtered)
+            appointments: @appointments.map { |appointment| appointment_to_json(appointment) },
+            pagination: pagination_data(@appointments)
           },
           message: "Appointments retrieved successfully."
         }, status: :ok
       end
 
-      # GET /api/v1/patients/appointments/:id
+      # GET /api/v1/appointments/:id
       def show
         render json: {
           success: true,
-          data: {
-            appointment: appointment_with_provider(@appointment)
-          },
-          message: "Appointment details retrieved successfully."
+          data: { appointment: appointment_to_json(@appointment, include_details: true) },
+          message: "Appointment retrieved successfully."
         }, status: :ok
       end
 
-      # POST /api/v1/patients/appointments
+      # POST /api/v1/appointments
       def create
-        # Check if selected time slot is still available
-        if !slot_available?
+        # Only patients can create appointments
+        unless current_user.patient?
           return render json: {
             success: false,
-            errors: ['The selected time slot is no longer available']
-          }, status: :unprocessable_entity
+            error: "Only patients can create appointments."
+          }, status: :forbidden
         end
 
         @appointment = current_user.appointments_as_patient.build(appointment_params)
 
-        # Validate provider existence and availability (future implementation)
-        unless User.where(id: params[:appointment][:provider_id], role: 'provider').exists?
+        # Validate appointment time
+        unless valid_appointment_time?
           return render json: {
             success: false,
-            error: 'Provider not found or is not a valid healthcare provider'
+            error: "Invalid appointment time. Please select a future time during provider availability."
           }, status: :unprocessable_entity
         end
 
-        # TODO: Add availability check logic here
+        # Check for conflicts
+        if appointment_conflict?
+          return render json: {
+            success: false,
+            error: "Appointment time conflicts with existing appointment."
+          }, status: :unprocessable_entity
+        end
 
         if @appointment.save
-          # Send confirmation email/notification
-          send_appointment_confirmation(@appointment)
-
+          # Send notifications
+          send_appointment_notifications(@appointment)
+          
           render json: {
             success: true,
-            data: {
-              appointment: appointment_with_provider(@appointment)
-            },
-            message: 'Appointment booked successfully. A confirmation has been sent to your email.'
+            data: { appointment: appointment_to_json(@appointment) },
+            message: "Appointment created successfully."
           }, status: :created
         else
           render json: {
@@ -77,46 +88,41 @@ module Api
         end
       end
 
-      # PUT /api/v1/patients/appointments/:id
+      # PUT /api/v1/appointments/:id
       def update
-        if @appointment.status != 'scheduled'
-          return render json: {
-            success: false,
-            errors: ['Cannot update a non-scheduled appointment']
-          }, status: :unprocessable_entity
-        end
-
-        # Check if selected time slot is still available (if changing date/time)
-        if appointment_time_changed? && !slot_available?
-          return render json: {
-            success: false,
-            errors: ['The selected time slot is no longer available']
-          }, status: :unprocessable_entity
-        end
-
         # Only allow updates if appointment is not completed or cancelled
-        if ['completed', 'cancelled_by_patient', 'cancelled_by_provider'].include?(@appointment.status)
+        unless @appointment.status.in?(['scheduled', 'confirmed'])
           return render json: {
             success: false,
-            error: 'Cannot modify a completed or cancelled appointment'
+            error: "Cannot update appointment with status: #{@appointment.status}"
           }, status: :unprocessable_entity
         end
 
-        
-        # Handle cancellation specifically
-        if params[:appointment][:status] == 'cancelled_by_patient'
-          return cancel_appointment
+        # Validate appointment time if it's being changed
+        if appointment_params[:appointment_datetime].present?
+          unless valid_appointment_time?
+            return render json: {
+              success: false,
+              error: "Invalid appointment time. Please select a future time during provider availability."
+            }, status: :unprocessable_entity
+          end
+
+          if appointment_conflict?
+            return render json: {
+              success: false,
+              error: "Appointment time conflicts with existing appointment."
+            }, status: :unprocessable_entity
+          end
         end
-        
-        # Regular update (date, time, reason, etc.)
-        if @appointment.update(appointment_update_params)
-          # Send update notification
-          send_appointment_update(@appointment)
+
+        if @appointment.update(appointment_params)
+          # Send notifications for updates
+          send_appointment_update_notifications(@appointment)
           
           render json: {
             success: true,
-            data: { appointment: appointment_with_provider(@appointment) },
-            message: 'Appointment updated successfully. A confirmation has been sent to your email.'
+            data: { appointment: appointment_to_json(@appointment) },
+            message: "Appointment updated successfully."
           }, status: :ok
         else
           render json: {
@@ -126,236 +132,348 @@ module Api
         end
       end
 
+      # DELETE /api/v1/appointments/:id
       def destroy
-        # Implement as cancellation rather than deletion to maintain records
-        cancel_appointment
+        # Only allow cancellation if appointment is not completed
+        unless @appointment.status.in?(['scheduled', 'confirmed'])
+          return render json: {
+            success: false,
+            error: "Cannot cancel appointment with status: #{@appointment.status}"
+          }, status: :unprocessable_entity
+        end
+
+        if @appointment.update(status: :cancelled)
+          # Send cancellation notifications
+          send_appointment_cancellation_notifications(@appointment)
+          
+          render json: {
+            success: true,
+            message: "Appointment cancelled successfully."
+          }, status: :ok
+        else
+          render json: {
+            success: false,
+            errors: @appointment.errors.full_messages
+          }, status: :unprocessable_entity
+        end
       end
 
-      # GET /api/v1/patients/appointments/upcoming
-      def upcoming
-        today = Date.today.beginning_of_day
-        upcoming = current_user.appointments_as_patient
-                            .where('appointment_datetime >= ? AND status = ?', today, Appointment.statuses[:scheduled])
-                            .order(appointment_datetime: :asc)
-                            .limit(5)
-                            
+      # GET /api/v1/appointments/available_slots
+      def available_slots
+        provider_id = params[:provider_id]
+        date = params[:date]
+
+        unless provider_id && date
+          return render json: {
+            success: false,
+            error: "Provider ID and date are required."
+          }, status: :bad_request
+        end
+
+        begin
+          target_date = Date.parse(date)
+        rescue ArgumentError
+          return render json: {
+            success: false,
+            error: "Invalid date format."
+          }, status: :bad_request
+        end
+
+        provider = User.find_by(id: provider_id, role: 'provider')
+        unless provider
+          return render json: {
+            success: false,
+            error: "Provider not found."
+          }, status: :not_found
+        end
+
+        slots = calculate_available_slots(provider, target_date)
+
         render json: {
           success: true,
           data: {
-            appointments: upcoming.map { |appointment| appointment_with_provider(appointment) }
-          }
+            provider: {
+              id: provider.id,
+              name: provider.full_name,
+              specialization: provider.provider_profile&.specialization
+            },
+            date: target_date,
+            available_slots: slots
+          },
+          message: "Available slots retrieved successfully."
         }, status: :ok
       end
 
       private
-      
-      def find_appointment
-        # Find appointment and ensure it belongs to current user
-        appointment = current_user.appointments_as_patient.find_by(id: params[:id])
-        
-        unless appointment
-          raise ActiveRecord::RecordNotFound, 'Appointment not found or access denied'
-        end
-        
-        appointment
-      end
-      
-      def cancel_appointment
-        @appointment = find_appointment
-        
-        # Only allow cancellation of scheduled appointments
-        unless @appointment.status == 'scheduled'
-          return render json: {
-            success: false,
-            error: 'Only scheduled appointments can be cancelled'
-          }, status: :unprocessable_entity
-        end
-        
-        # Update status to cancelled by patient
-        if @appointment.update(status: :cancelled_by_patient)
-          # TODO: Implement notification to provider
-          
-          render json: {
-            success: true,
-            message: 'Appointment cancelled successfully.'
-          }, status: :ok
+
+      def set_appointment
+        @appointment = if current_user.patient?
+          current_user.appointments_as_patient.find(params[:id])
+        elsif current_user.provider?
+          current_user.appointments_as_provider.find(params[:id])
         else
+          nil
+        end
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          error: "Appointment not found."
+        }, status: :not_found
+      end
+
+      def authorize_appointment_access!
+        # Patients can access their own appointments
+        # Providers can access appointments where they are the provider
+        unless @appointment && (
+          (current_user.patient? && @appointment.patient_id == current_user.id) ||
+          (current_user.provider? && @appointment.provider_id == current_user.id)
+        )
           render json: {
             success: false,
-            errors: @appointment.errors.full_messages
-          }, status: :unprocessable_entity
+            error: "Unauthorized access to appointment."
+          }, status: :forbidden
         end
       end
 
       def apply_filters(appointments)
         filtered = appointments
-        
-        # Filter by status if provided
+
+        # Filter by status
         if params[:status].present?
           filtered = filtered.where(status: params[:status])
         end
-        
-        # Filter by date range if provided
+
+        # Filter by date range
         if params[:start_date].present? && params[:end_date].present?
           begin
-            start_date = Date.parse(params[:start_date]).beginning_of_day
-            end_date = Date.parse(params[:end_date]).end_of_day
-            filtered = filtered.where(appointment_datetime: start_date..end_date)
+            start_date = Date.parse(params[:start_date])
+            end_date = Date.parse(params[:end_date])
+            filtered = filtered.where(appointment_datetime: start_date.beginning_of_day..end_date.end_of_day)
           rescue ArgumentError
             # Invalid date format, ignore filter
           end
         end
-        
-        # Filter by provider if provided
-        if params[:provider_id].present?
+
+        # Filter by provider (for patients)
+        if current_user.patient? && params[:provider_id].present?
           filtered = filtered.where(provider_id: params[:provider_id])
         end
-        
-        # Filter by appointment type if provided
-        if params[:appointment_type].present?
-          filtered = filtered.where(appointment_type: params[:appointment_type])
+
+        # Filter by patient (for providers)
+        if current_user.provider? && params[:patient_id].present?
+          filtered = filtered.where(patient_id: params[:patient_id])
         end
-        
+
         filtered
       end
-      
-      def paginate(appointments)
-        # Simple pagination implementation
+
+      def paginate(collection)
         page = (params[:page] || 1).to_i
         per_page = (params[:per_page] || 10).to_i
-        appointments.offset((page - 1) * per_page).limit(per_page)
+        collection.offset((page - 1) * per_page).limit(per_page)
       end
-      
-      def pagination_data(appointments)
+
+      def pagination_data(collection)
         {
           current_page: (params[:page] || 1).to_i,
           per_page: (params[:per_page] || 10).to_i,
-          total_items: current_user.appointments_as_patient.count,
-          total_pages: (current_user.appointments_as_patient.count.to_f / (params[:per_page] || 10).to_i).ceil
+          total_items: collection.count,
+          total_pages: (collection.count.to_f / (params[:per_page] || 10).to_i).ceil
         }
       end
 
-      # Check if the requested appointment time slot is available
-      def slot_available?
-        provider_id = params[:appointment][:provider_id]
-        requested_datetime = params[:appointment][:appointment_datetime]
-        duration = params[:appointment][:duration_minutes].to_i || 30 # Default to 30 minutes if not specified
-        
-        return true unless provider_id.present? && requested_datetime.present?
-        
+      def valid_appointment_time?
+        appointment_time = appointment_params[:appointment_datetime]
+        return false unless appointment_time
+
         begin
-          # Parse the requested datetime
-          appointment_time = DateTime.parse(requested_datetime)
-          
-          # Get the day of week (0-6, Sunday-Saturday)
-          day_of_week = appointment_time.wday
-          
-          # Check if provider has availability for this day and time
-          provider_availability = ProviderAvailability.where(
-            provider_id: provider_id,
-            day_of_week: day_of_week
+          datetime = DateTime.parse(appointment_time)
+        rescue ArgumentError
+          return false
+        end
+
+        # Must be in the future
+        return false if datetime <= Time.current
+
+        # Must be during provider availability
+        provider = User.find(appointment_params[:provider_id])
+        return false unless provider&.provider_profile
+
+        # Check if the time falls within provider's availability
+        # This is a simplified check - in a real app, you'd check the provider's availability schedule
+        hour = datetime.hour
+        return hour >= 9 && hour <= 17 # 9 AM to 5 PM
+      end
+
+      def appointment_conflict?
+        appointment_time = DateTime.parse(appointment_params[:appointment_datetime])
+        duration = appointment_params[:duration_minutes] || 30
+        end_time = appointment_time + duration.minutes
+
+        # Check for conflicts with existing appointments
+        conflicting_appointments = Appointment.where(
+          provider_id: appointment_params[:provider_id],
+          status: ['scheduled', 'confirmed']
+        ).where(
+          'appointment_datetime < ? AND appointment_datetime + (duration_minutes || 30) * INTERVAL \'1 minute\' > ?',
+          end_time,
+          appointment_time
+        )
+
+        # Exclude current appointment if updating
+        conflicting_appointments = conflicting_appointments.where.not(id: @appointment.id) if @appointment
+
+        conflicting_appointments.exists?
+      end
+
+      def calculate_available_slots(provider, date)
+        # Get provider's availability for the day
+        availability = provider.provider_profile&.availability || {}
+        day_schedule = availability[date.strftime('%A').downcase] || {}
+
+        # Default availability if not set
+        start_time = day_schedule['start'] || '09:00'
+        end_time = day_schedule['end'] || '17:00'
+        slot_duration = day_schedule['slot_duration'] || 30
+
+        # Generate time slots
+        slots = []
+        current_time = Time.parse(start_time)
+        end_datetime = Time.parse(end_time)
+
+        while current_time < end_datetime
+          slot_start = date.to_time + current_time.seconds_since_midnight.seconds
+          slot_end = slot_start + slot_duration.minutes
+
+          # Check if slot is available (no conflicting appointments)
+          conflicting = Appointment.where(
+            provider_id: provider.id,
+            status: ['scheduled', 'confirmed']
           ).where(
-            'TIME(?) >= start_time AND TIME(?) <= end_time',
-            appointment_time,
-            appointment_time + duration.minutes
-          )
-          
-          return false if provider_availability.empty?
-          
-          # Check for conflicting appointments
-          conflicting_appointments = Appointment.where(
-            provider_id: provider_id,
-            status: [:scheduled, :confirmed], # Only check active appointments
-          ).where(
-            '(appointment_datetime <= ? AND appointment_datetime + INTERVAL duration_minutes MINUTE > ?) OR ' +
-            '(appointment_datetime < ? AND appointment_datetime + INTERVAL duration_minutes MINUTE >= ?)',
-            appointment_time,
-            appointment_time,
-            appointment_time + duration.minutes,
-            appointment_time + duration.minutes
-          )
-          
-          # Include the current appointment in the exclusion if we're updating
-          if @appointment&.id.present?
-            conflicting_appointments = conflicting_appointments.where.not(id: @appointment.id)
+            'appointment_datetime < ? AND appointment_datetime + (duration_minutes || 30) * INTERVAL \'1 minute\' > ?',
+            slot_end,
+            slot_start
+          ).exists?
+
+          unless conflicting
+            slots << {
+              start_time: slot_start.strftime('%H:%M'),
+              end_time: slot_end.strftime('%H:%M'),
+              available: true
+            }
           end
-          
-          # Return true if no conflicts
-          conflicting_appointments.empty?
-        rescue => e
-          # Log the error and default to false if there's an issue
-          Rails.logger.error("Error checking slot availability: #{e.message}")
-          false
+
+          current_time += slot_duration.minutes
         end
+
+        slots
       end
-      
-      # Check if appointment datetime is being changed in an update
-      def appointment_time_changed?
-        return false unless params[:appointment][:appointment_datetime].present?
-        
-        requested_time = DateTime.parse(params[:appointment][:appointment_datetime])
-        original_time = @appointment.appointment_datetime
-        
-        # Compare with some tolerance for minor differences in seconds
-        (requested_time - original_time).abs > 1.minute
-      rescue
-        false # If parsing fails, assume no change
-      end
-      
-      # Format appointment with provider details
-      def appointment_with_provider(appointment)
-        provider = appointment.provider
-        
-        # Get the serialized appointment
-        appt_data = {}
-        
-        if defined?(AppointmentSerializer)
-          # Use serializer if available
-          appt_data = AppointmentSerializer.new(appointment).serializable_hash[:data][:attributes]
-        else
-          # Manual serialization if serializer not available
-          appt_data = {
-            id: appointment.id,
-            appointment_datetime: appointment.appointment_datetime,
-            duration_minutes: appointment.duration_minutes,
-            status: appointment.status,
-            appointment_type: appointment.appointment_type,
-            reason: appointment.reason,
-            notes: appointment.notes,
-            created_at: appointment.created_at,
-            updated_at: appointment.updated_at
-          }
-        end
-        
-        # Add provider details
-        appt_data[:provider] = {
-          id: provider.id,
-          full_name: provider.full_name,
-          email: provider.email,
-          # Add more provider details as needed
+
+      def appointment_to_json(appointment, include_details: false)
+        json = {
+          id: appointment.id,
+          appointment_datetime: appointment.appointment_datetime,
+          duration_minutes: appointment.duration_minutes,
+          status: appointment.status,
+          appointment_type: appointment.appointment_type,
+          reason: appointment.reason,
+          notes: appointment.notes,
+          created_at: appointment.created_at,
+          updated_at: appointment.updated_at
         }
-        
-        appt_data
+
+        # Add patient info
+        if appointment.patient
+          json[:patient] = {
+            id: appointment.patient.id,
+            name: appointment.patient.full_name,
+            age: calculate_age(appointment.patient.date_of_birth),
+            gender: appointment.patient.gender
+          }
+
+          if include_details
+            json[:patient].merge!({
+              email: appointment.patient.email,
+              phone: appointment.patient.phone,
+              emergency_contact: appointment.patient.patient_profile&.emergency_contact
+            })
+          end
+        end
+
+        # Add provider info
+        if appointment.provider
+          json[:provider] = {
+            id: appointment.provider.id,
+            name: appointment.provider.full_name,
+            specialization: appointment.provider.provider_profile&.specialization
+          }
+
+          if include_details
+            json[:provider].merge!({
+              email: appointment.provider.email,
+              phone: appointment.provider.phone,
+              license_number: appointment.provider.provider_profile&.license_number
+            })
+          end
+        end
+
+        json
       end
-      
-      # Send appointment confirmation notifications
-      def send_appointment_confirmation(appointment)
-        # TODO: Implement actual email sending logic
-        # For now, just log that we would send an email
-        Rails.logger.info("Would send appointment confirmation email to #{current_user.email} for appointment ##{appointment.id}")
-        
-        # In a real implementation, you'd have something like:
-        # AppointmentMailer.confirmation_email(current_user, appointment).deliver_later
-        # AppointmentNotificationService.send_sms(current_user, appointment, :confirmation) if current_user.sms_notifications_enabled?
+
+      def calculate_age(date_of_birth)
+        return nil unless date_of_birth
+        now = Time.current.to_date
+        now.year - date_of_birth.year - ((now.month > date_of_birth.month || (now.month == date_of_birth.month && now.day >= date_of_birth.day)) ? 0 : 1)
       end
-      
-      # Send appointment update notifications
-      def send_appointment_update(appointment)
-        # TODO: Implement actual email sending logic
-        Rails.logger.info("Would send appointment update email to #{current_user.email} for appointment ##{appointment.id}")
-        
-        # Notify provider as well
-        Rails.logger.info("Would send appointment update notification to provider #{appointment.provider.email}")
+
+      def send_appointment_notifications(appointment)
+        # Send notification to provider
+        Notification.create(
+          user: appointment.provider,
+          title: "New Appointment Request",
+          message: "You have a new appointment request from #{appointment.patient.full_name}",
+          notification_type: "appointment_request",
+          data: { appointment_id: appointment.id }
+        )
+
+        # Send confirmation to patient
+        Notification.create(
+          user: appointment.patient,
+          title: "Appointment Confirmed",
+          message: "Your appointment with #{appointment.provider.full_name} has been scheduled",
+          notification_type: "appointment_confirmation",
+          data: { appointment_id: appointment.id }
+        )
+      end
+
+      def send_appointment_update_notifications(appointment)
+        # Send notification to both parties about the update
+        [appointment.patient, appointment.provider].each do |user|
+          next unless user
+          
+          Notification.create(
+            user: user,
+            title: "Appointment Updated",
+            message: "Your appointment has been updated",
+            notification_type: "appointment_update",
+            data: { appointment_id: appointment.id }
+          )
+        end
+      end
+
+      def send_appointment_cancellation_notifications(appointment)
+        # Send notification to both parties about the cancellation
+        [appointment.patient, appointment.provider].each do |user|
+          next unless user
+          
+          Notification.create(
+            user: user,
+            title: "Appointment Cancelled",
+            message: "Your appointment has been cancelled",
+            notification_type: "appointment_cancellation",
+            data: { appointment_id: appointment.id }
+          )
+        end
       end
 
       def appointment_params
@@ -365,18 +483,8 @@ module Api
           :duration_minutes,
           :appointment_type,
           :reason,
-          :notes
-        )
-      end
-      
-      def appointment_update_params
-        # For updates, don't allow changing provider_id to maintain integrity
-        params.require(:appointment).permit(
-          :appointment_datetime,
-          :duration_minutes,
-          :appointment_type,
-          :reason,
-          :notes
+          :notes,
+          :status
         )
       end
     end

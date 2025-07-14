@@ -125,6 +125,18 @@ Data: ${JSON.stringify(error.response?.data || error.message)}`);
       }
     }
     
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error - no response received');
+      error.message = 'Network error. Please check your connection and try again.';
+    }
+    
+    // Handle server errors
+    if (error.response?.status >= 500) {
+      console.error('Server error detected');
+      error.message = 'Server error. Please try again later.';
+    }
+    
     return Promise.reject(error);
   }
 );

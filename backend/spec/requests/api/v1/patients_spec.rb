@@ -1,177 +1,378 @@
 # spec/requests/api/v1/patients_spec.rb
 require 'rails_helper'
 
-RSpec.describe 'Patients API', type: :request do
-  let(:patient) { create(:patient) }
-  let!(:patient_profile) { create(:patient_profile, user: patient) }
-  
-  describe 'GET /api/v1/patient/profile' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'returns the patient profile' do
-        get '/api/v1/patient/profile'
-        
+RSpec.describe 'API::V1::Patients', type: :request do
+  let(:patient) { User.create!(user_params) }
+  let(:provider) { User.create!(provider_params) }
+  let(:token) { patient.generate_jwt }
+
+  let(:user_params) do
+    {
+      full_name: 'John Doe',
+      email: 'john@example.com',
+      password: 'password123',
+      password_confirmation: 'password123',
+      phone: '+1234567890',
+      date_of_birth: '1990-01-01',
+      gender: 'male',
+      role: 'patient'
+    }
+  end
+
+  let(:provider_params) do
+    {
+      full_name: 'Dr. Smith',
+      email: 'dr.smith@example.com',
+      password: 'password123',
+      password_confirmation: 'password123',
+      phone: '+1234567891',
+      date_of_birth: '1980-01-01',
+      gender: 'female',
+      role: 'provider'
+    }
+  end
+
+  before do
+    # Create patient profile
+    PatientProfile.create!(
+      user: patient,
+      blood_type: 'O+',
+      height: '175',
+      weight: '70',
+      allergies: ['Penicillin'],
+      conditions: ['Hypertension']
+    )
+  end
+
+  describe 'GET /api/v1/patients/profile' do
+    context 'with valid authentication' do
+      it 'returns patient profile data' do
+        get '/api/v1/patients/profile', headers: {
+          'Authorization' => "Bearer #{token}"
+        }
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(json_response['data']['profile']).to be_present
-        expect(json_response['data']['profile']['emergency_contact']).to be_present
-        expect(json_response['data']['profile']['insurance_details']).to be_present
+        expect(json_response['data']['personal_info']['email']).to eq('john@example.com')
+        expect(json_response['data']['personal_info']['full_name']).to eq('John Doe')
+        expect(json_response['data']['health_metrics']['blood_type']).to eq('O+')
       end
     end
-    
-    context 'when authenticated as provider' do
-      let(:provider) { create(:provider) }
-      before { sign_in provider }
-      
-      it 'returns forbidden' do
-        get '/api/v1/patient/profile'
-        
+
+    context 'without authentication' do
+      it 'returns unauthorized error' do
+        get '/api/v1/patients/profile'
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'with non-patient user' do
+      let(:provider_token) { provider.generate_jwt }
+
+      it 'returns forbidden error' do
+        get '/api/v1/patients/profile', headers: {
+          'Authorization' => "Bearer #{provider_token}"
+        }
+
         expect(response).to have_http_status(:forbidden)
       end
     end
   end
-  
-  describe 'PUT /api/v1/patient/profile' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'updates basic profile information' do
-        put '/api/v1/patient/profile', params: {
-          profile: {
-            email: 'updated@example.com',
-            phone: '555-123-4567'
+
+  describe 'PUT /api/v1/patients/profile' do
+    let(:update_params) do
+      {
+        personal_info: {
+          full_name: 'John Updated',
+          phone: '+1234567899'
+        },
+        health_metrics: {
+          height: '180',
+          weight: '75',
+          allergies: ['Penicillin', 'Sulfa']
+        }
+      }
+    end
+
+    context 'with valid authentication and parameters' do
+      it 'updates patient profile' do
+        put '/api/v1/patients/profile', 
+          params: update_params,
+          headers: {
+            'Authorization' => "Bearer #{token}"
           }
-        }
-        
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(patient.reload.email).to eq('updated@example.com')
+        expect(json_response['message']).to eq('Profile updated successfully')
+        
+        # Verify the update
+        patient.reload
+        expect(patient.full_name).to eq('John Updated')
+        expect(patient.phone).to eq('+1234567899')
+      end
+    end
+
+    context 'with invalid parameters' do
+      it 'returns validation errors' do
+        put '/api/v1/patients/profile', 
+          params: { personal_info: { email: 'invalid-email' } },
+          headers: {
+            'Authorization' => "Bearer #{token}"
+          }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        
+        json_response = JSON.parse(response.body)
+        expect(json_response['success']).to be false
+        expect(json_response['errors']).to be_present
       end
     end
   end
-  
-  describe 'PUT /api/v1/patient/profile/emergency_contact' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'updates emergency contact information' do
-        emergency_contact = {
-          name: 'Emergency Contact',
-          relationship: 'Spouse',
-          phone: '555-911-1234',
-          email: 'emergency@example.com'
+
+  describe 'GET /api/v1/patients/appointments' do
+    let!(:appointment) do
+      Appointment.create!(
+        patient: patient,
+        provider: provider,
+        appointment_datetime: 1.week.from_now,
+        duration_minutes: 30,
+        status: 'scheduled',
+        appointment_type: 'consultation',
+        reason: 'Follow-up visit'
+      )
+    end
+
+    context 'with valid authentication' do
+      it 'returns patient appointments' do
+        get '/api/v1/patients/appointments', headers: {
+          'Authorization' => "Bearer #{token}"
         }
-        
-        put '/api/v1/patient/profile/emergency_contact', params: {
-          emergency_contact: emergency_contact
-        }
-        
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(patient_profile.reload.emergency_contact['name']).to eq('Emergency Contact')
+        expect(json_response['data']).to be_an(Array)
+        expect(json_response['data'].length).to eq(1)
+        expect(json_response['data'][0]['reason']).to eq('Follow-up visit')
+      end
+
+      it 'filters appointments by status' do
+        get '/api/v1/patients/appointments', 
+          params: { status: 'scheduled' },
+          headers: {
+            'Authorization' => "Bearer #{token}"
+          }
+
+        expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
+        expect(json_response['data'].length).to eq(1)
       end
     end
   end
-  
-  describe 'PUT /api/v1/patient/profile/insurance' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'updates insurance information' do
-        insurance = {
-          provider: 'New Health Insurance',
-          policy_number: '123456789',
-          group_number: '987654',
-          coverage_dates: '2025-01-01 to 2025-12-31'
+
+  describe 'POST /api/v1/patients/appointments' do
+    let(:appointment_params) do
+      {
+        appointment: {
+          provider_id: provider.id,
+          appointment_datetime: 1.week.from_now.iso8601,
+          duration_minutes: 30,
+          appointment_type: 'consultation',
+          reason: 'New patient visit'
         }
+      }
+    end
+
+    context 'with valid parameters' do
+      it 'creates a new appointment' do
+        expect {
+          post '/api/v1/patients/appointments',
+            params: appointment_params,
+            headers: {
+              'Authorization' => "Bearer #{token}"
+            }
+        }.to change(Appointment, :count).by(1)
+
+        expect(response).to have_http_status(:created)
         
-        put '/api/v1/patient/profile/insurance', params: {
-          insurance: insurance
-        }
-        
-        expect(response).to have_http_status(:ok)
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(patient_profile.reload.insurance_details['provider']).to eq('New Health Insurance')
+        expect(json_response['message']).to eq('Appointment created successfully')
+      end
+    end
+
+    context 'with invalid parameters' do
+      it 'returns validation errors' do
+        post '/api/v1/patients/appointments',
+          params: { appointment: { provider_id: provider.id } },
+          headers: {
+            'Authorization' => "Bearer #{token}"
+          }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        
+        json_response = JSON.parse(response.body)
+        expect(json_response['success']).to be false
+        expect(json_response['errors']).to be_present
       end
     end
   end
-  
-  describe 'PUT /api/v1/patient/profile/health_metrics' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'updates health metrics' do
-        health_metrics = {
-          height: '180 cm',
-          weight: '75 kg',
-          blood_type: 'O+',
-          allergies: ['Peanuts', 'Penicillin'],
-          last_physical: Date.today.to_s
+
+  describe 'GET /api/v1/patients/medications' do
+    let!(:prescription) do
+      Prescription.create!(
+        patient: patient,
+        provider: provider,
+        medication_name: 'Lisinopril',
+        dosage: '10mg',
+        frequency: 'Once daily',
+        start_date: Date.current,
+        refills_allowed: 3,
+        refills_remaining: 2,
+        instructions: 'Take with food',
+        status: 'active'
+      )
+    end
+
+    context 'with valid authentication' do
+      it 'returns patient medications' do
+        get '/api/v1/patients/medications', headers: {
+          'Authorization' => "Bearer #{token}"
         }
-        
-        put '/api/v1/patient/profile/health_metrics', params: {
-          health_metrics: health_metrics
-        }
-        
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(patient_profile.reload.health_metrics['height']).to eq('180 cm')
-        expect(patient_profile.reload.health_metrics['allergies']).to eq(['Peanuts', 'Penicillin'])
+        expect(json_response['data']).to be_an(Array)
+        expect(json_response['data'].length).to eq(1)
+        expect(json_response['data'][0]['medication_name']).to eq('Lisinopril')
       end
     end
   end
-  
-  describe 'PUT /api/v1/patient/profile/health_history' do
-    context 'when authenticated as patient' do
-      before { sign_in patient }
-      
-      it 'updates health history' do
-        health_history = {
-          conditions: ['Hypertension', 'Asthma'],
-          surgeries: ['Appendectomy 2020'],
-          medications: ['Lisinopril', 'Albuterol'],
-          family_history: 'Diabetes in maternal side, heart disease in paternal side'
+
+  describe 'POST /api/v1/patients/medications/:id/refill' do
+    let!(:prescription) do
+      Prescription.create!(
+        patient: patient,
+        provider: provider,
+        medication_name: 'Lisinopril',
+        dosage: '10mg',
+        frequency: 'Once daily',
+        start_date: Date.current,
+        refills_allowed: 3,
+        refills_remaining: 2,
+        instructions: 'Take with food',
+        status: 'active'
+      )
+    end
+
+    context 'with valid prescription' do
+      it 'requests medication refill' do
+        post "/api/v1/patients/medications/#{prescription.id}/refill", headers: {
+          'Authorization' => "Bearer #{token}"
         }
-        
-        put '/api/v1/patient/profile/health_history', params: {
-          health_history: health_history
-        }
-        
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(patient_profile.reload.health_history['conditions']).to eq(['Hypertension', 'Asthma'])
-        expect(patient_profile.reload.health_history['family_history']).to include('Diabetes')
+        expect(json_response['message']).to eq('Refill request submitted successfully')
+        
+        # Verify refill count decreased
+        prescription.reload
+        expect(prescription.refills_remaining).to eq(1)
+      end
+    end
+
+    context 'with no refills remaining' do
+      before do
+        prescription.update!(refills_remaining: 0)
+      end
+
+      it 'returns error' do
+        post "/api/v1/patients/medications/#{prescription.id}/refill", headers: {
+          'Authorization' => "Bearer #{token}"
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        
+        json_response = JSON.parse(response.body)
+        expect(json_response['success']).to be false
+        expect(json_response['error']).to eq('No refills remaining')
       end
     end
   end
-  
-  describe 'GET /api/v1/patient/dashboard' do
-    context 'when authenticated as patient' do
-      before do 
-        sign_in patient
-        # Create some appointments for the dashboard
-        provider = create(:provider)
-        create(:appointment, patient: patient, provider: provider, datetime: 1.day.from_now)
-        create(:appointment, patient: patient, provider: provider, datetime: 7.days.from_now)
-        # Create some notifications
-        create(:notification, user: patient, read_at: nil)
-      end
-      
-      it 'returns dashboard data' do
-        get '/api/v1/patient/dashboard'
-        
+
+  describe 'GET /api/v1/patients/records' do
+    let!(:medical_record) do
+      MedicalRecord.create!(
+        patient: patient,
+        provider: provider,
+        record_type: 'consultation',
+        title: 'Annual Checkup',
+        content: 'Patient is in good health',
+        date: Date.current
+      )
+    end
+
+    context 'with valid authentication' do
+      it 'returns patient medical records' do
+        get '/api/v1/patients/records', headers: {
+          'Authorization' => "Bearer #{token}"
+        }
+
         expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
-        expect(json_response['data']['upcoming_appointments'].size).to eq(2)
-        expect(json_response['data']['unread_notifications']).to be_present
-        expect(json_response['data']['recent_prescriptions']).to be_an(Array)
+        expect(json_response['data']).to be_an(Array)
+        expect(json_response['data'].length).to eq(1)
+        expect(json_response['data'][0]['title']).to eq('Annual Checkup')
       end
     end
   end
-  
-  # Helper method to parse JSON response
-  def json_response
-    JSON.parse(response.body)
+
+  describe 'GET /api/v1/patients/messages' do
+    let!(:conversation) do
+      Conversation.create!(
+        participant_a: patient,
+        participant_b: provider,
+        title: 'Health Consultation'
+      )
+    end
+
+    let!(:message) do
+      Message.create!(
+        conversation: conversation,
+        sender: provider,
+        body: 'How are you feeling today?',
+        message_type: 'text'
+      )
+    end
+
+    context 'with valid authentication' do
+      it 'returns patient messages' do
+        get '/api/v1/patients/messages', headers: {
+          'Authorization' => "Bearer #{token}"
+        }
+
+        expect(response).to have_http_status(:ok)
+        
+        json_response = JSON.parse(response.body)
+        expect(json_response['success']).to be true
+        expect(json_response['data']).to be_an(Array)
+        expect(json_response['data'].length).to eq(1)
+        expect(json_response['data'][0]['body']).to eq('How are you feeling today?')
+      end
+    end
   end
 end

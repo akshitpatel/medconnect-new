@@ -24,6 +24,11 @@ Rails.application.routes.draw do
       post 'auth/login', to: 'auth#login'
       delete 'auth/logout', to: 'auth#logout'
       get 'auth/me', to: 'users#me'
+      
+      # Password management
+      post 'auth/forgot-password', to: 'passwords#forgot_password'
+      post 'auth/reset-password', to: 'passwords#reset_password'
+      post 'auth/change-password', to: 'passwords#change_password'
 
       # Patient panel endpoints
       resources :patients, only: [] do
@@ -60,6 +65,13 @@ Rails.application.routes.draw do
         end
       end
 
+      # Unified appointments endpoint (for both patients and providers)
+      resources :appointments, only: [:index, :show, :create, :update, :destroy] do
+        collection do
+          get :available_slots
+        end
+      end
+
       # Provider panel endpoints
       resources :providers, only: [] do
         collection do
@@ -70,15 +82,32 @@ Rails.application.routes.draw do
           get :profile
           put :profile, to: 'providers#update_profile'
           
-          # Provider availability management
-          resources :availabilities, controller: 'provider_availabilities', except: [:show]
-          
           # Provider appointments
-          resources :appointments, controller: 'provider_appointments'
+          resources :appointments, controller: 'providers' do
+            member do
+              put :update_appointment
+              delete :cancel_appointment
+            end
+          end
+          
+          # Provider patients
+          resources :patients, controller: 'providers', only: [:index] do
+            member do
+              get :records, to: 'providers#patient_records'
+              post :records, to: 'providers#add_medical_record'
+            end
+          end
           
           # Provider messages
-          resources :messages, controller: 'provider_messages', only: [:index, :show, :create]
-          post 'messages/new_conversation', to: 'provider_messages#new_conversation'
+          resources :messages, controller: 'providers', only: [:index] do
+            member do
+              get :show_conversation
+              post :send_message
+            end
+          end
+          
+          # Provider availability management
+          resources :availabilities, controller: 'provider_availabilities', except: [:show]
         end
       end
 
